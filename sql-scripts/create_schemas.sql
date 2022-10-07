@@ -1,0 +1,5 @@
+CREATE USER task_tracker IDENTIFIED BY qwerty;
+GRANT CONNECT TO task_tracker;
+
+CREATE USER auth IDENTIFIED BY qwerty;
+GRANT CONNECT TO auth;

@@ -34,8 +34,8 @@ namespace Common.Auth
 
             if (model.LoginSuccessful)
             {
-                IIdentity identity = new GenericIdentity(model.Name);
-                IPrincipal principal = new GenericPrincipal(identity, model.Roles);
+                IIdentity identity = new GenericIdentityWithPublicId(model.Name, model.PublicId);
+                IPrincipal principal = new GenericPrincipal(identity, model.Roles);                
                 context.Principal = principal;
             }
             else

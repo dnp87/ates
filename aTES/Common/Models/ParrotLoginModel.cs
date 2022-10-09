@@ -12,6 +12,8 @@ namespace Common.Models
 
         public string Name { get; set; }
 
+        public string PublicId { get; set; }
+
         public string[] Roles { get; set; }
     }
 }

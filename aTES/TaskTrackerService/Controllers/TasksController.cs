@@ -32,13 +32,27 @@ namespace TaskTrackerService.Controllers
         [HttpGet]
         public IEnumerable<Task> Mine()
         {
-            //todo: get current parrot id
+            // todo: implement it as correct claims
+            string publicId = ((GenericIdentityWithPublicId)RequestContext.Principal.Identity).PublicId;
+            int parrotId = GetParrotIdByPublicId(publicId);
+
             using (var db = new TaskTrackerDB())
             {
                 var q = from t in db.Tasks
-                        where t.ParrotId == 0 //todo
+                        where t.ParrotId == parrotId
                         select t;
                 return q.LoadWith(t => t.Parrot).ToArray();
+            }
+        }
+
+        private int GetParrotIdByPublicId(string publicId)
+        {
+            using (var db = new TaskTrackerDB())
+            {
+                var q = from p in db.Parrots
+                        where p.PublicId == publicId
+                        select p.Id;
+                return q.First();
             }
         }
 

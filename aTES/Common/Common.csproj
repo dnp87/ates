@@ -88,6 +88,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Auth\AuthenticationFailureResult.cs" />
+    <Compile Include="Auth\GenericIdentityWithPublicId.cs" />
     <Compile Include="Auth\ServiceAuthAttribute.cs" />
     <Compile Include="Constants\RoleNames.cs" />
     <Compile Include="Enums\RoleIds.cs" />

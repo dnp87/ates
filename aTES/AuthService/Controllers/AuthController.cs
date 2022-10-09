@@ -54,6 +54,7 @@ namespace AuthService.Controllers
                             {
                                 LoginSuccessful = true,
                                 Name = p.Name,
+                                PublicId = p.PublicId,
                                 Roles = new[] { p.Role.Name }
                             };
                 parrot = query.FirstOrDefault();

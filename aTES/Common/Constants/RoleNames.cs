@@ -8,6 +8,9 @@ namespace Common.Constants
 {
     public static class RoleNames
     {
-        // todo: role names
+        public const string Engineer = nameof(Engineer);
+        public const string Administrator = nameof(Administrator);
+        public const string Manager = nameof(Manager);
+        public const string Accountant = nameof(Accountant);
     }
 }

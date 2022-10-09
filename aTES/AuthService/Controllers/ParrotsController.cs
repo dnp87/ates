@@ -74,13 +74,6 @@ namespace AuthService.Controllers
             }
         }
 
-        // DELETE: api/Parrots/...
-        public void Delete(Guid id)
-        {
-            using (var db = new AuthDB())
-            {
-                db.Parrots.Delete(p => p.PublicId == id.ToString());
-            }
-        }
+        // no parrot deletion
     }
 }

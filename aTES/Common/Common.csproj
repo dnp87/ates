@@ -90,6 +90,8 @@
     <Compile Include="Auth\AuthenticationFailureResult.cs" />
     <Compile Include="Auth\ServiceAuthAttribute.cs" />
     <Compile Include="Constants\RoleNames.cs" />
+    <Compile Include="Enums\RoleIds.cs" />
+    <Compile Include="Enums\TaskStatus.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

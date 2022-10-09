@@ -51,6 +51,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Auth\AuthenticationFailureResult.cs" />
     <Compile Include="Auth\ServiceAuthAttribute.cs" />
     <Compile Include="Constants\RoleNames.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />

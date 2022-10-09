@@ -1,16 +1,16 @@
 ﻿using Common.Models;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Security.Principal;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Http.Filters;
 
 namespace Common.Auth
 {
+    /// <summary>
+    /// Forces authorization via &lt;authservice&gt;/auth/tryauth
+    /// </summary>
     public class ServiceAuthAttribute : Attribute, IAuthenticationFilter
     {
         public bool AllowMultiple => false;
@@ -21,7 +21,7 @@ namespace Common.Auth
             client.DefaultRequestHeaders.Authorization = context.Request.Headers.Authorization;
 
             // todo: get url from service config
-            var response = await client.GetAsync(@"https://localhost:44342/api/auth/tryauth");
+            var response = await client.GetAsync(@"https://localhost:44386/api/auth/tryauth");
             ParrotLoginModel model = null;
             if (response.IsSuccessStatusCode)
             {

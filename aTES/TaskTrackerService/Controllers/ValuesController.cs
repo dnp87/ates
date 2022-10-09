@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common.Auth;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -7,6 +8,7 @@ using System.Web.Http;
 
 namespace TaskTrackerService.Controllers
 {
+    [ServiceAuth]
     public class ValuesController : ApiController
     {
         // GET api/values

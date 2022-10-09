@@ -1,4 +1,5 @@
-﻿using Common.Models;
+﻿using AuthService.Db;
+using Common.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,25 +12,20 @@ namespace AuthService.Controllers
     public class AuthController : ApiController
     {
         /// <summary>
-        /// Try to authorize user via basic authorization containing login only
+        /// Try to authorize user via basic authorization containing email only
         /// </summary>
         /// <returns></returns>
         // GET api/auth/tryauth
         [HttpGet]
         public ParrotLoginModel TryAuth()
-        {
-            var authVal = Request.Headers.Authorization.Parameter;
-
+        {            
             if (Request.Headers.Authorization?.Scheme == "Basic")
             {
-                if (TryParseLogin(authVal, out string login))
+                var authVal = Request.Headers.Authorization.Parameter;
+                if (TryParseEmail(authVal, out string email) && TryGetParrot(email, out ParrotLoginModel parrot))
                 {
-                    return new ParrotLoginModel
-                    {
-                        Name = login,
-                        Roles = new string[] { },
-                        LoginSuccessful = true,
-                    };
+                    parrot.LoginSuccessful = true;
+                    return parrot;
                 }
                 else
                 {
@@ -48,17 +44,34 @@ namespace AuthService.Controllers
             }
         }
 
-        private bool TryParseLogin(string authVal, out string login)
+        private bool TryGetParrot(string email, out ParrotLoginModel parrot)
         {
-            login = null;
+            using(var db = new AuthDB())
+            {
+                var query = from p in db.Parrots
+                            where p.Email == email
+                            select new ParrotLoginModel
+                            {
+                                LoginSuccessful = true,
+                                Name = p.Name,
+                                Roles = new[] { p.Role.Name }
+                            };
+                parrot = query.FirstOrDefault();
+                return parrot != null;
+            }
+        }
+
+        private bool TryParseEmail(string authVal, out string email)
+        {
+            email = null;
             if (!String.IsNullOrEmpty(authVal))
             {
                 try
                 {
                     var base64bytes = Convert.FromBase64String(authVal);
                     var inputStr = System.Text.Encoding.UTF8.GetString(base64bytes);
-                    //todo: parse login out
-                    login = inputStr;                    
+                    //todo: email and password
+                    email = inputStr.Split(':').First();                    
                     return true;
                 }
                 catch

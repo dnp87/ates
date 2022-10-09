@@ -5,3 +5,5 @@
 /aTES/AuthService/obj
 /aTES/AuthService/bin
 /aTES/.vs/aTES/v17/*.suo
+/aTES/.vs
+.vs

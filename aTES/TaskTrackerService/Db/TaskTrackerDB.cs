@@ -14,7 +14,6 @@ namespace TaskTrackerService.Db
 
         public ITable<Role> Roles => this.GetTable<Role>();
         public ITable<Parrot> Parrots => this.GetTable<Parrot>();
-
         public ITable<Task> Tasks => this.GetTable<Task>();
     }
 }

@@ -28,6 +28,8 @@ namespace TaskTrackerService.Controllers
         }
 
         // GET: api/Tasks/mine
+        [Route("api/Tasks/mine")]
+        [HttpGet]
         public IEnumerable<Task> Mine()
         {
             //todo: get current parrot id
@@ -58,6 +60,7 @@ namespace TaskTrackerService.Controllers
 
                 db.Insert(new Task
                 {
+                    PublicId = Guid.NewGuid().ToString(),
                     ParrotId = parrotId,
                     Name = postModel.Name,
                     Description = postModel.Description,
@@ -68,8 +71,26 @@ namespace TaskTrackerService.Controllers
             //TODO: events
         }
 
+        // PUT: api/Tasks/Complete/{public_id}
+        [Route("api/Tasks/Complete/{id}")]
+        [HttpPut]
+        public void Complete(Guid id)
+        {
+            using (var db = new TaskTrackerDB())
+            {
+                db.Tasks
+                    .Where(p => p.PublicId == id.ToString())
+                    .Set(t => t.Status, TaskStatus.Completed)
+                    .Update();
+            }
+
+            //TODO: events
+        }
+
         // POST: api/shuffle
         [Authorize(Roles = RoleNames.Manager + "," + RoleNames.Administrator)]
+        [Route("api/Tasks/shuffle")]
+        [HttpPost]
         public void Shuffle()
         {
             using (var db = new TaskTrackerDB())
@@ -77,10 +98,14 @@ namespace TaskTrackerService.Controllers
                 var tasks = db.Tasks.Where(t => t.Status == Common.Enums.TaskStatus.Active).ToArray();
                 foreach(var task in tasks)
                 {
-                    task.ParrotId = GetRandomEngineerParrotId();
-                    db.Update(task);
+                    int randomParrotId = GetRandomEngineerParrotId();
+                    if(randomParrotId != task.ParrotId)
+                    {
+                        task.ParrotId = randomParrotId;
+                        db.Update(task);
 
-                    // TODO: event for tasks that changed it's designated parrot
+                        // TODO: event for task
+                    }
                 }
             }            
         }
@@ -97,21 +122,7 @@ namespace TaskTrackerService.Controllers
                 var idx = new Random().Next(publicIds.Length);
                 return publicIds[idx];
             }
-        }
-
-        // PUT: api/Tasks/Complete/{public_id}
-        public void Complete(Guid id)
-        {
-            using (var db = new TaskTrackerDB())
-            {
-                db.Tasks
-                    .Where(p => p.PublicId == id.ToString())
-                    .Set(t => t.Status, TaskStatus.Completed)
-                    .Update();
-            }
-
-            //TODO: events
-        }
+        }        
 
         // no task deletion
     }

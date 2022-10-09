@@ -9,11 +9,14 @@ namespace AuthService.Db
     [Table(Name = "PARROTS")]
     public class Parrot
     {
-        [Column(IsPrimaryKey = true, Name = "ID")]
+        [PrimaryKey]
+        [Identity]
+        [Column(Name = "ID")]
         public int Id { get; set; }
 
+        // should be guid, but I failed to make it work with linq2db yet
         [Column(Name = "PUBLIC_ID")]
-        public Guid PublicId { get; set; }
+        public string PublicId { get; set; }
 
         [Column(Name = "NAME")]
         public string Name { get; set; }

@@ -6,13 +6,13 @@ using System.Net;
 using System.Net.Http;
 using System.Web.Http;
 using LinqToDB;
+using AuthService.Models;
 
 namespace AuthService.Controllers
 {
     public class ParrotsController : ApiController
     {
         // GET: api/parrots
-        [HttpGet]
         public IEnumerable<Parrot> Get()
         {
             using (var db = new AuthDB())
@@ -24,39 +24,62 @@ namespace AuthService.Controllers
         }
 
         // GET: api/parrots/5
-        [HttpGet]
         public Parrot Get(Guid id)
         {            
             using (var db = new AuthDB())
             {
-                return db.Parrots.LoadWith(p => p.Role).SingleOrDefault(p => p.PublicId == id);
+                return db.Parrots.LoadWith(p => p.Role).SingleOrDefault(p => p.PublicId == id.ToString());
             }
         }
 
         // POST: api/parrots
-        public void Post([FromBody] Parrot value)
+        public void Post([FromBody] ParrotPostPutModel value)
         {
             using (var db = new AuthDB())
             {
-                db.Insert(value);
+                db.Insert(new Parrot
+                {
+                    PublicId = Guid.NewGuid().ToString(),
+                    Name = value.Name,
+                    Email = value.Email,
+                    RoleId = value.RoleId,
+                });
             }
         }
 
-        // PUT: api/Parrots/5
-        public void Put(int id, [FromBody] Parrot value)
+        // PUT: api/Parrots/...
+        public void Put(Guid id, [FromBody] ParrotPostPutModel value)
         {
             using (var db = new AuthDB())
             {
-                db.InsertOrReplace(value);
+                // todo: remove custom get
+                var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == id.ToString());
+                if (parrot == null)
+                {
+                    db.Insert(new Parrot
+                    {
+                        PublicId = id.ToString(),
+                        Name = value.Name,
+                        Email = value.Email,
+                        RoleId = value.RoleId,
+                    });
+                }
+                else
+                {
+                    parrot.Name = value.Name;
+                    parrot.Email = value.Email;
+                    parrot.RoleId = value.RoleId;
+                    db.Update(parrot);
+                }
             }
         }
 
-        // DELETE: api/Parrots/5
-        public void Delete(int id)
+        // DELETE: api/Parrots/...
+        public void Delete(Guid id)
         {
             using (var db = new AuthDB())
             {
-                db.Parrots.Delete(p => p.Id == id);
+                db.Parrots.Delete(p => p.PublicId == id.ToString());
             }
         }
     }

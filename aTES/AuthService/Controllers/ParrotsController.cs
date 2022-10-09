@@ -7,11 +7,27 @@ using System.Net.Http;
 using System.Web.Http;
 using LinqToDB;
 using AuthService.Models;
+using Confluent.Kafka;
+using Common.Constants;
+using System.Configuration;
+using Newtonsoft.Json;
 
 namespace AuthService.Controllers
 {
     public class ParrotsController : ApiController
     {
+        private IProducer<string, string> _parrotCreateProducer;
+
+        public ParrotsController() : base()
+        {
+            var conf = new ProducerConfig()
+            {
+                BootstrapServers = "localhost:9092"
+            };
+            var producer = new ProducerBuilder<string, string>(conf);
+            _parrotCreateProducer = producer.Build();
+        }
+
         // GET: api/parrots
         public IEnumerable<Parrot> Get()
         {
@@ -35,16 +51,24 @@ namespace AuthService.Controllers
         // POST: api/parrots
         public void Post([FromBody] ParrotPostPutModel value)
         {
+            Parrot newParrot;
             using (var db = new AuthDB())
             {
-                db.Insert(new Parrot
+                newParrot = new Parrot
                 {
                     PublicId = Guid.NewGuid().ToString(),
                     Name = value.Name,
                     Email = value.Email,
                     RoleId = value.RoleId,
-                });
+                };
+                db.Insert(newParrot);
             }
+
+            _parrotCreateProducer.Produce(TopicNames.ParrotCreatedV1, new Message<string, string>
+            {
+                Key = newParrot.PublicId,
+                Value = JsonConvert.SerializeObject(newParrot),
+            });
         }
 
         // PUT: api/Parrots/...
@@ -74,6 +98,6 @@ namespace AuthService.Controllers
             }
         }
 
-        // no parrot deletion
+        // todo: events
     }
 }

@@ -22,7 +22,7 @@ namespace AuthService.Controllers
         {
             var conf = new ProducerConfig()
             {
-                BootstrapServers = "localhost:9092"
+                BootstrapServers = "localhost:9092",
             };
             var producer = new ProducerBuilder<string, string>(conf);
             _parrotCreateProducer = producer.Build();

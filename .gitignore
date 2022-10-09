@@ -7,3 +7,5 @@
 /aTES/.vs/aTES/v17/*.suo
 /aTES/.vs
 .vs
+*.user
+/aTES/TaskTrackerService/*.user

@@ -69,7 +69,7 @@ namespace TaskTrackerService.Controllers
         }
 
         // POST: api/shuffle
-        [Authorize(Roles = RoleNames.Manager + "," + RoleNames.Administrator]
+        [Authorize(Roles = RoleNames.Manager + "," + RoleNames.Administrator)]
         public void Shuffle()
         {
             using (var db = new TaskTrackerDB())

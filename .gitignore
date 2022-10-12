@@ -1,0 +1,11 @@
+/aTES/TaskTrackerService/obj
+/aTES/TaskTrackerService/bin
+/aTES/Common/bin
+/aTES/Common/obj
+/aTES/AuthService/obj
+/aTES/AuthService/bin
+/aTES/.vs/aTES/v17/*.suo
+/aTES/.vs
+.vs
+*.user
+/aTES/TaskTrackerService/*.user

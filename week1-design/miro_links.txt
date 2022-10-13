@@ -1,0 +1,3 @@
+Event storming: https://miro.com/app/board/uXjVPRrS0KU=/
+Domain: https://miro.com/app/board/uXjVPQFNvxg=/
+Services: https://miro.com/app/board/uXjVPQEqVTY=/

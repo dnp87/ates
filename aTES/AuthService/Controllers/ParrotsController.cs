@@ -11,12 +11,15 @@ using Confluent.Kafka;
 using Common.Constants;
 using System.Configuration;
 using Newtonsoft.Json;
+using Common.ProducerWrapper;
+using Common.SchemaRegistry;
 
 namespace AuthService.Controllers
 {
     public class ParrotsController : ApiController
     {
         private IProducer<string, string> _parrotCreateProducer;
+        private IProducerWrapper _producerWrapper;
 
         public ParrotsController() : base()
         {
@@ -26,6 +29,8 @@ namespace AuthService.Controllers
             };
             var producer = new ProducerBuilder<string, string>(conf);
             _parrotCreateProducer = producer.Build();
+
+            _producerWrapper = new ProducerWrapper(new SchemaValidator());
         }
 
         // GET: api/parrots

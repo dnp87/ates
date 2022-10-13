@@ -102,6 +102,8 @@
     <Compile Include="Models\ParrotLoginModel.cs" />
     <Compile Include="Pricing\ITaskPricing.cs" />
     <Compile Include="Pricing\TaskPricing.cs" />
+    <Compile Include="ProducerWrapper\IProducerWrapper.cs" />
+    <Compile Include="ProducerWrapper\ProducerWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SchemaRegistry\ISchemaValidator.cs" />
     <Compile Include="SchemaRegistry\SchemaValidator.cs" />

@@ -2,15 +2,10 @@
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
 using Newtonsoft.Json.Schema.Generation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Common.SchemaRegistry
 {
-    internal class SchemaValidator : ISchemaValidator
+    public class SchemaValidator : ISchemaValidator
     {
         public bool ValidateBySchema<T>(string json) where T : EventBase
         {

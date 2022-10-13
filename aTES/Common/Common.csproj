@@ -95,6 +95,8 @@
     <Compile Include="Enums\RoleIds.cs" />
     <Compile Include="Enums\TaskStatus.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />
+    <Compile Include="Pricing\ITaskPricing.cs" />
+    <Compile Include="Pricing\TaskPricing.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

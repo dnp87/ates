@@ -10,12 +10,22 @@ using TaskTrackerService.Models;
 using Common.Enums;
 using Common.Auth;
 using Common.Constants;
+using Common.Pricing;
 
 namespace TaskTrackerService.Controllers
 {
     [ServiceAuth]
     public class TasksController : ApiController
     {
+        private readonly ITaskPricing _taskPricing;
+
+        public TasksController() : base()
+        {
+            //todo: dependency injection
+            _taskPricing = new TaskPricing();
+
+        }
+
         // GET: api/Tasks
         public IEnumerable<Task> Get()
         {
@@ -79,6 +89,8 @@ namespace TaskTrackerService.Controllers
                     Name = postModel.Name,
                     Description = postModel.Description,
                     Status = Common.Enums.TaskStatus.Active,
+                    AssignedAmount = _taskPricing.GetAssignAmount(),
+                    CompletedAmount = _taskPricing.GetCompletedAmount(),
                 });
             }
 

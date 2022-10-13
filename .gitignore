@@ -9,3 +9,16 @@
 .vs
 *.user
 /aTES/TaskTrackerService/*.user
+/aTES/AccountingService/bin
+/aTES/AccountingService/obj
+/aTES/AccountingService/AccountingService.csproj.user
+/aTES/AccountingService.Background/bin
+/aTES/AccountingService.Background/obj
+/aTES/AccountingService.Core/obj
+/aTES/AccountingService.Core/bin
+/aTES/AnalyticsService/bin
+/aTES/AnalyticsService/obj
+/aTES/AnalyticsService.Background/bin
+/aTES/AnalyticsService.Background/obj
+/aTES/AnalyticsService.Core/obj
+/aTES/AnalyticsService.Core/bin

@@ -12,7 +12,7 @@ namespace Common.SchemaRegistry
 
         public SchemaValidator()
         {
-            _basePath = System.Web.Hosting.HostingEnvironment.MapPath("JsonSchemas");
+            _basePath = System.Web.Hosting.HostingEnvironment.MapPath("/bin/JsonSchemas");
         }
 
         public bool ValidateBySchema(string json, string eventName, int version)
@@ -27,7 +27,7 @@ namespace Common.SchemaRegistry
                 }
 
                 var parsedJObject = JObject.Parse(json);
-                return parsedJObject.IsValid(schema);
+                return parsedJObject.IsValid(schema, out System.Collections.Generic.IList<string> errors);
             }
             catch
             {

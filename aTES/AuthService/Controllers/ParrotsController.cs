@@ -12,6 +12,7 @@ using Common.Constants;
 using Common.ProducerWrapper;
 using Common.SchemaRegistry;
 using Common.Events;
+using Common.Enums;
 
 namespace AuthService.Controllers
 {
@@ -70,12 +71,12 @@ namespace AuthService.Controllers
                     db.Insert(newParrot);
 
                     bool sent = _producerWrapper.TrySendMessage(
-                    _parrotCreateProducer, TopicNames.ParrotCreatedV1, newParrot.PublicId,
-                    new ParrotCreatedEventV1(new ParrotCreatedEventV1Data
+                    _parrotCreateProducer, TopicNames.ParrotCreatedV2, newParrot.PublicId,
+                    new ParrotCreatedEventV2(new ParrotCreatedEventV2Data
                     {
                         Name = value.Name,
                         Email = value.Email,
-                        RoleId = value.RoleId,
+                        RoleId = (RoleIds) value.RoleId,
                     }));
                     
                     if(sent)

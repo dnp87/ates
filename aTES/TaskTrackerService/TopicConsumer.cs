@@ -2,12 +2,10 @@
 using Confluent.Kafka;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Web;
 using TaskTrackerService.Db;
 using LinqToDB;
+using Common.Events;
 
 namespace TaskTrackerService
 {
@@ -22,17 +20,20 @@ namespace TaskTrackerService
             };
             using (var builder = new ConsumerBuilder<string,string>(conf).Build())
             {
-                builder.Subscribe(TopicNames.ParrotCreatedV1);
+                builder.Subscribe(TopicNames.ParrotCreatedV2);
                 var cancelToken = new CancellationTokenSource();
                 try
                 {
                     while (true)
                     {
                         var consumeResult = builder.Consume(cancelToken.Token);
-                        var parrot = JsonConvert.DeserializeObject<Parrot>(consumeResult.Message.Value);
+                        var parrot = JsonConvert.DeserializeObject<ParrotCreatedEventV2>(consumeResult.Message.Value);
                         using(var db = new TaskTrackerDB())
                         {
-                            db.Insert(parrot);
+                            db.Insert(new Parrot
+                            {
+                                //todo
+                            });
                         }
                         Thread.Sleep(1000);
                     }

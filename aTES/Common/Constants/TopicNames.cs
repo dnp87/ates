@@ -9,5 +9,7 @@ namespace Common.Constants
     public static class TopicNames
     {
         public const string ParrotCreatedV1 = "parrot.created.1";
+
+        public const string ParrotCreatedV2 = "parrot.created.2";
     }
 }

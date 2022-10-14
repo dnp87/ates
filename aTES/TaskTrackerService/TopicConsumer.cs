@@ -27,16 +27,23 @@ namespace TaskTrackerService
                     while (true)
                     {
                         var consumeResult = builder.Consume(cancelToken.Token);
-                        var parrot = JsonConvert.DeserializeObject<ParrotCreatedEventV2>(consumeResult.Message.Value);
+                        var createdEvent = JsonConvert.DeserializeObject<ParrotCreatedEventV2>(consumeResult.Message.Value);
                         using(var db = new TaskTrackerDB())
                         {
                             db.Insert(new Parrot
                             {
-                                //todo
+                                Email = createdEvent.Data.Email,
+                                Name = createdEvent.Data.Name,
+                                PublicId = createdEvent.Data.PublicId,
+                                RoleId = (int)createdEvent.Data.RoleId
                             });
                         }
                         Thread.Sleep(1000);
                     }
+                }
+                catch(OperationCanceledException)
+                {
+                    // consume timeout, no-op
                 }
                 catch (Exception)
                 {

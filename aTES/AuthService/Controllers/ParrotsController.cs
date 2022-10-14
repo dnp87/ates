@@ -77,6 +77,7 @@ namespace AuthService.Controllers
                         Name = value.Name,
                         Email = value.Email,
                         RoleId = (RoleIds) value.RoleId,
+                        PublicId = newParrot.PublicId,
                     }));
                     
                     if(sent)

@@ -10,6 +10,11 @@ namespace Common.Events
         public override string EventName => EventNames.ParrotCreated;
         public override int EventVersion => 2;
 
+        public ParrotCreatedEventV2() : base(null)
+        {
+
+        }
+
         public ParrotCreatedEventV2(ParrotCreatedEventV2Data data) : base(data)
         {
         }

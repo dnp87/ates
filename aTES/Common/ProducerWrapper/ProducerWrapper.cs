@@ -20,7 +20,7 @@ namespace Common.ProducerWrapper
             try
             {
                 string json = JsonConvert.SerializeObject(message);
-                if (_schemaValidator.ValidateBySchema(json, message.EventName, message.EventVersion))
+                if (_schemaValidator.ValidateBySchema(json, message.EventName, message.EventVersion, out System.Collections.Generic.IList<string> errors))
                 {
                     producer.Produce(topicName, new Message<string, string>
                     {

@@ -1,20 +1,31 @@
 ﻿using Common.Events;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
-using Newtonsoft.Json.Schema.Generation;
+using System.IO;
 
 namespace Common.SchemaRegistry
 {
     public class SchemaValidator : ISchemaValidator
     {
-        public bool ValidateBySchema<T>(string json) where T : EventBase
-        {
-            // generate schema from type and validate by schema
-            var generator = new JSchemaGenerator();
-            var schema = generator.Generate(typeof(T));
+        private string _basePath;
 
+        public SchemaValidator()
+        {
+            _basePath = System.Web.Hosting.HostingEnvironment.MapPath("JsonSchemas");
+        }
+
+        public bool ValidateBySchema(string json, string eventName, int version)
+        {
             try
             {
+                JSchema schema;
+                using (StreamReader file = File.OpenText(Path.Combine(_basePath, $"{eventName}.{version}.json")))
+                using (JsonTextReader reader = new JsonTextReader(file))
+                {
+                    schema = JSchema.Load(reader);
+                }
+
                 var parsedJObject = JObject.Parse(json);
                 return parsedJObject.IsValid(schema);
             }

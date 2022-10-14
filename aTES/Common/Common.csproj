@@ -94,11 +94,13 @@
     <Compile Include="Auth\AuthenticationFailureResult.cs" />
     <Compile Include="Auth\GenericIdentityWithPublicId.cs" />
     <Compile Include="Auth\ServiceAuthAttribute.cs" />
+    <Compile Include="Constants\EventNames.cs" />
     <Compile Include="Constants\RoleNames.cs" />
     <Compile Include="Constants\TopicNames.cs" />
     <Compile Include="Enums\RoleIds.cs" />
     <Compile Include="Enums\TaskStatus.cs" />
     <Compile Include="Events\EventBase.cs" />
+    <Compile Include="Events\ParrotCreatedEventV1.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />
     <Compile Include="Pricing\ITaskPricing.cs" />
     <Compile Include="Pricing\TaskPricing.cs" />

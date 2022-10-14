@@ -4,6 +4,6 @@ namespace Common.SchemaRegistry
 {
     public interface ISchemaValidator
     {
-        bool ValidateBySchema<T>(string json) where T : EventBase;
+        bool ValidateBySchema(string json, string eventName, int version);
     }
 }

@@ -9,10 +9,9 @@ using LinqToDB;
 using AuthService.Models;
 using Confluent.Kafka;
 using Common.Constants;
-using System.Configuration;
-using Newtonsoft.Json;
 using Common.ProducerWrapper;
 using Common.SchemaRegistry;
+using Common.Events;
 
 namespace AuthService.Controllers
 {
@@ -54,26 +53,50 @@ namespace AuthService.Controllers
         }
 
         // POST: api/parrots
-        public void Post([FromBody] ParrotPostPutModel value)
+        public HttpResponseMessage Post([FromBody] ParrotPostPutModel value)
         {
             Parrot newParrot;
             using (var db = new AuthDB())
             {
-                newParrot = new Parrot
+                using (var tran = db.BeginTransaction())
                 {
-                    PublicId = Guid.NewGuid().ToString(),
-                    Name = value.Name,
-                    Email = value.Email,
-                    RoleId = value.RoleId,
-                };
-                db.Insert(newParrot);
-            }
+                    newParrot = new Parrot
+                    {
+                        PublicId = Guid.NewGuid().ToString(),
+                        Name = value.Name,
+                        Email = value.Email,
+                        RoleId = value.RoleId,
+                    };
+                    db.Insert(newParrot);
 
-            _parrotCreateProducer.Produce(TopicNames.ParrotCreatedV1, new Message<string, string>
-            {
-                Key = newParrot.PublicId,
-                Value = JsonConvert.SerializeObject(newParrot),
-            });
+                    bool sent = _producerWrapper.TrySendMessage(
+                    _parrotCreateProducer, TopicNames.ParrotCreatedV1, newParrot.PublicId,
+                    new ParrotCreatedEventV1(new ParrotCreatedEventV1Data
+                    {
+                        Name = value.Name,
+                        Email = value.Email,
+                        RoleId = value.RoleId,
+                    }));
+                    
+                    if(sent)
+                    {
+                        db.CommitTransaction();
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("Topic", "failed to sent topic");
+                    }    
+                }
+
+                if (ModelState.IsValid)
+                {
+                    return new HttpResponseMessage(HttpStatusCode.OK);
+                }
+                else
+                {
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+                }
+            }
         }
 
         // PUT: api/Parrots/...

@@ -2,36 +2,40 @@
 
 namespace Common.Events
 {
-    public class EventBase<T> : EventBase
+    public abstract class EventBase<T> : EventBase
     {
-        public EventBase(string name, int version, DateTime date, T data) : base(name, version, date)
+        public EventBase(Guid guid, DateTime date, T data) : base(guid, date)
         {
             Data = data;
         }
 
-        public EventBase(string name, int version, T data) : this(name, version, DateTime.Now, data)
+        public EventBase(DateTime date, T data) : this(Guid.NewGuid(), date, data)
+        {
+            Data = data;
+        }
+
+        public EventBase(T data) : this(Guid.NewGuid(), DateTime.Now, data)
         {
         }
 
         public T Data { get; set; }
     }
 
-    public class EventBase
+    public abstract class EventBase
     {
-        public EventBase(string name, int version, DateTime date)
+        public EventBase(Guid guid, DateTime date)
         {
-            EventVersion = version;
-            EventName = name;
+            EventId = guid;
             EventDate = date;
         }
 
-        public EventBase(string name, int version) : this(name, version, DateTime.Now)
+        public EventBase() : this(Guid.NewGuid(), DateTime.Now)
         {
         }
 
-        public Guid EventId { get; } = Guid.NewGuid();
-        public int EventVersion { get; set; }
+        public Guid EventId { get; private set; } = Guid.NewGuid();        
         public DateTime EventDate { get; set; }
-        public string EventName { get; set; }
+        public abstract string EventName { get; }
+        public abstract int EventVersion { get; }
     }
 }

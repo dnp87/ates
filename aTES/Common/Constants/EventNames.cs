@@ -7,6 +7,6 @@
         
         public const string TaskCreated = nameof(TaskCreated);
         public const string TaskAssigned = nameof(TaskAssigned);
-        public const string TaskCompleted = nameof(TaskCompleted);
+        public const string TaskCompleted = nameof(TaskCompleted);   
     }
 }

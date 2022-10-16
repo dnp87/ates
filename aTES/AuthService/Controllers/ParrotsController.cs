@@ -13,6 +13,7 @@ using Common.ProducerWrapper;
 using Common.SchemaRegistry;
 using Common.Events;
 using Common.Enums;
+using System.Configuration;
 
 namespace AuthService.Controllers
 {
@@ -25,7 +26,7 @@ namespace AuthService.Controllers
         {
             var conf = new ProducerConfig()
             {
-                BootstrapServers = "localhost:9092",
+                BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
             };
             var producer = new ProducerBuilder<string, string>(conf);
             _parrotCreateProducer = producer.Build();
@@ -69,7 +70,7 @@ namespace AuthService.Controllers
                         RoleId = value.RoleId,
                     };
                     db.Insert(newParrot);
-
+                    
                     bool sent = _producerWrapper.TrySendMessage(
                     _parrotCreateProducer, TopicNames.ParrotCreatedV2, newParrot.PublicId,
                     new ParrotCreatedEventV2(new ParrotCreatedEventV2Data

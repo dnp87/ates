@@ -1,11 +1,14 @@
 ﻿using AccountingService.Core.Db;
 using Common.Constants;
+using Common.ConsumerWrapper;
 using Common.Events;
+using Common.Utils;
 using Confluent.Kafka;
 using LinqToDB;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -15,96 +18,93 @@ namespace AccountingService.Background
 {
     internal class Program
     {
-        private const string ConsumerGroupName = "accounting_service_consumer_group";
-
         static void Main(string[] args)
         {
             System.Threading.Tasks.Task.WhenAll(
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
-                System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic)
+                System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
+                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV1Topic),
+                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV2Topic),
+                System.Threading.Tasks.Task.Run(ConsumeTaskAssignedTopic),
+                System.Threading.Tasks.Task.Run(ConsumeTaskCompletedTopic)
                 ).Wait();
         }
 
         static void ConsumeParrotCreatedTopic()
         {
-            var conf = new ConsumerConfig
-            {
-                GroupId = ConsumerGroupName,
-                BootstrapServers = "localhost:9092",
-            };
-            using (var builder = new ConsumerBuilder<string, string>(conf).Build())
-            {
-                builder.Subscribe(TopicNames.ParrotCreatedV2);
-                var cancelToken = new CancellationTokenSource();
-                try
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.ParrotCreatedV2,
+                (ParrotCreatedEventV2 typedEvent) =>
                 {
-                    while (true)
+                    using (var db = new AccountingDB())
                     {
-                        var consumeResult = builder.Consume(cancelToken.Token);
-                        var createdEvent = JsonConvert.DeserializeObject<ParrotCreatedEventV2>(consumeResult.Message.Value);
-                        using (var db = new AccountingDB())
+                        db.Insert(new Parrot
                         {
-                            db.Insert(new Parrot
-                            {
-                                Email = createdEvent.Data.Email,
-                                Name = createdEvent.Data.Name,
-                                PublicId = createdEvent.Data.PublicId,
-                                RoleId = (int)createdEvent.Data.RoleId
-                            });
-                        }
-                        Thread.Sleep(1000);
+                            Email = typedEvent.Data.Email,
+                            Name = typedEvent.Data.Name,
+                            PublicId = typedEvent.Data.PublicId,
+                            RoleId = (int)typedEvent.Data.RoleId
+                        });
                     }
-                }
-                catch (OperationCanceledException)
-                {
-                    // consume timeout, no-op
-                }
-                catch (Exception e)
-                {
-                    builder.Close();
-                }
-            }
-        }
+                });
+        }        
 
         static void ConsumeParrotUpdatedTopic()
         {
-            var conf = new ConsumerConfig
-            {
-                GroupId = ConsumerGroupName,
-                BootstrapServers = "localhost:9092",
-            };
-            using (var builder = new ConsumerBuilder<string, string>(conf).Build())
-            {
-                builder.Subscribe(TopicNames.ParrotUpdatedV1);
-                var cancelToken = new CancellationTokenSource();
-                try
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.ParrotUpdatedV1,
+                (ParrotUpdatedEventV1 typedEvent) =>
                 {
-                    while (true)
+                    using (var db = new AccountingDB())
                     {
-                        var consumeResult = builder.Consume(cancelToken.Token);
-                        var updatedEvent = JsonConvert.DeserializeObject<ParrotUpdatedEventV1>(consumeResult.Message.Value);
-                        using (var db = new AccountingDB())
-                        {
-                            var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == updatedEvent.Data.PublicId.ToString());
-                            parrot.Email = updatedEvent.Data.Email;
-                            parrot.Name = updatedEvent.Data.Name;
-                            parrot.PublicId = updatedEvent.Data.PublicId;
-                            parrot.RoleId = (int)updatedEvent.Data.RoleId;
+                        var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == typedEvent.Data.PublicId.ToString());
+                        parrot.Email = typedEvent.Data.Email;
+                        parrot.Name = typedEvent.Data.Name;
+                        parrot.PublicId = typedEvent.Data.PublicId;
+                        parrot.RoleId = (int)typedEvent.Data.RoleId;
 
-                            db.Update(parrot);
-                        }
-                        Thread.Sleep(1000);
+                        db.Update(parrot);
                     }
-                }
-                catch (OperationCanceledException)
+                });
+        }
+
+        static void ConsumeTaskCreatedV1Topic()
+        {
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCreatedV1,
+                (TaskCreatedEventV1 typedEvent) =>
                 {
-                    // consume timeout, no-op
-                }
-                catch (Exception e)
-                {
-                    builder.Close();
-                }
-            }
+                    using (var db = new AccountingDB())
+                    {
+                        if (TaskNameParser.TryParseJiraIdAndName(typedEvent.Data.Name, out (string jiraId, string name) pair))
+                        {
+                            var task = new Core.Db.Task
+                            {
+                                PublicId = typedEvent.Data.PublicId,
+                                Description = typedEvent.Data.Description,
+                                Name = pair.name,
+                                JiraId = pair.jiraId,
+                                ParrotId = typedEvent.Data.ParrotId,
+                                AssignedAmount = typedEvent.Data.AssignedAmount,
+                                CompletedAmount = typedEvent.Data.CompletedAmount,
+                            };
+
+                            db.Insert(task);
+                        }
+                    }
+                });            
+        }
+
+        static void ConsumeTaskCreatedV2Topic()
+        {
+
+        }
+
+        static void ConsumeTaskAssignedTopic()
+        {
+
+        }
+
+        static void ConsumeTaskCompletedTopic()
+        {
+
         }
     }
 }

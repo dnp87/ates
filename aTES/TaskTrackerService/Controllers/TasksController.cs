@@ -12,6 +12,7 @@ using Common.Auth;
 using Common.Constants;
 using Common.Pricing;
 using System.Text.RegularExpressions;
+using Common.Utils;
 
 namespace TaskTrackerService.Controllers
 {
@@ -117,7 +118,7 @@ namespace TaskTrackerService.Controllers
         [Route("api/Tasks/v1")]
         public HttpResponseMessage Postv1([FromBody] TaskPostModelV1 postModel)
         {            
-            if(!TryParseJiraIdAndName(postModel.Name, out (string jiraId, string name) pair))
+            if(!TaskNameParser.TryParseJiraIdAndName(postModel.Name, out (string jiraId, string name) pair))
             {
                 ModelState.AddModelError(nameof(postModel.Name), "Can't extract jira id and name from input string");
             }
@@ -153,23 +154,7 @@ namespace TaskTrackerService.Controllers
             {
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
             }
-        }
-
-        private bool TryParseJiraIdAndName(string name, out (string jiraId, string name) pair)
-        {
-            var regex = new Regex(@"\[(.+)\]\s+[\-]\s+(.*)");
-            var match = regex.Match(name);
-            if(match.Success)
-            {
-                pair = (match.Groups[0].Value, match.Groups[1].Value);
-                return false;
-            }
-            else
-            {
-                pair = (String.Empty, name);
-                return false;
-            }
-        }
+        }        
 
         // PUT: api/Tasks/Complete/{public_id}
         [Route("api/Tasks/Complete/{id}")]

@@ -1,4 +1,7 @@
-﻿using Common.Events;
+﻿using Common.Constants;
+using Common.Events;
+using Confluent.Kafka;
+using Confluent.Kafka.Admin;
 using Newtonsoft.Json.Schema;
 using Newtonsoft.Json.Schema.Generation;
 using System;
@@ -13,18 +16,24 @@ namespace Common
     {
         public static void Main()
         {
-            JSchemaGenerator generator = new JSchemaGenerator();
-
-            JSchema schema1 = generator.Generate(typeof(TaskCompletedEventV1));            ;
-            JSchema schema2 = generator.Generate(typeof(TaskAssignedEventV1));
-            JSchema schema3 = generator.Generate(typeof(TaskCreatedEventV1));
-            JSchema schema4 = generator.Generate(typeof(TaskCreatedEventV2));
-
-
-            string test1 = schema1.ToString();
-            string test2 = schema2.ToString();
-            string test3 = schema3.ToString();
-            string test4 = schema4.ToString();
+            var adminClient = new AdminClientBuilder(
+                new AdminClientConfig
+                {
+                    BootstrapServers = "localhost:9092"
+                }).Build();
+            try
+            {
+                adminClient.CreateTopicsAsync(new TopicSpecification[] {
+                    new TopicSpecification { Name = TopicNames.TaskCreatedV1, ReplicationFactor = 1, NumPartitions = 1 },
+                    new TopicSpecification { Name = TopicNames.TaskCreatedV2, ReplicationFactor = 1, NumPartitions = 1 },
+                    new TopicSpecification { Name = TopicNames.TaskAssignedV1, ReplicationFactor = 1, NumPartitions = 1 },
+                    new TopicSpecification { Name = TopicNames.TaskCompletedV1, ReplicationFactor = 1, NumPartitions = 1 },
+                }).Wait();                    
+            }
+            catch (CreateTopicsException e)
+            {
+                Console.WriteLine($"An error occured creating topic {e.Results[0].Topic}: {e.Results[0].Error.Reason}");
+            }
         }
     }
 }

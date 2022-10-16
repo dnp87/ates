@@ -19,6 +19,9 @@ namespace AccountingService.Core.Db
         [Column(Name = "NAME")]
         public string Name { get; set; }
 
+        [Column(Name = "JIRA_ID")]
+        public string JiraId { get; set; }
+
         [Column(Name = "DESCRIPTION")]
         public string Description { get; set; }
 

@@ -13,6 +13,11 @@ using Common.Constants;
 using Common.Pricing;
 using System.Text.RegularExpressions;
 using Common.Utils;
+using Confluent.Kafka;
+using Common.ProducerWrapper;
+using System.Configuration;
+using Common.SchemaRegistry;
+using Common.Events;
 
 namespace TaskTrackerService.Controllers
 {
@@ -20,11 +25,22 @@ namespace TaskTrackerService.Controllers
     public class TasksController : ApiController
     {
         private readonly ITaskPricing _taskPricing;
+        private IProducer<string, string> _parrotCreateProducer;
+        private IProducerWrapper _producerWrapper;
 
         public TasksController() : base()
         {
             //todo: dependency injection
             _taskPricing = new TaskPricing();
+
+            var conf = new ProducerConfig()
+            {
+                BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
+            };
+            var producer = new ProducerBuilder<string, string>(conf);
+            _parrotCreateProducer = producer.Build();
+
+            _producerWrapper = new ProducerWrapper(new SchemaValidator());
 
         }
 
@@ -84,22 +100,42 @@ namespace TaskTrackerService.Controllers
             {
                 using(var tran = db.BeginTransaction())
                 {
-                    int parrotId = GetRandomEngineerParrotId();
+                    var parrot = GetRandomEngineerParrot();
 
-                    db.Insert(new Task
+                    var task = new Task
                     {
                         PublicId = Guid.NewGuid().ToString(),
-                        ParrotId = parrotId,
+                        ParrotId = parrot.Id,
                         Name = postModel.Name,
                         JiraId = postModel.JiraId,
                         Description = postModel.Description,
                         Status = Common.Enums.TaskStatus.Active,
                         AssignedAmount = _taskPricing.GetAssignAmount(),
                         CompletedAmount = _taskPricing.GetCompletedAmount(),
-                    });
+                    };
+                    db.Insert(task);
 
-                    //TODO: events
-                    tran.Commit();
+                    bool sent = _producerWrapper.TrySendMessage(
+                    _parrotCreateProducer, TopicNames.TaskCreatedV2, task.PublicId,
+                    new TaskCreatedEventV2(new TaskCreatedEventV2Data
+                    {
+                        PublicId = task.PublicId,
+                        ParrotPublicId = parrot.PublicId,
+                        Name = task.Name,
+                        JiraId = task.JiraId,
+                        Description = task.Description,
+                        AssignedAmount = task.AssignedAmount,
+                        CompletedAmount = task.CompletedAmount,
+                    }), out IList<string> errors);
+
+                    if (sent)
+                    {
+                        tran.Commit();
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("Topic", String.Join("; ", errors));
+                    }
                 }
             }
 
@@ -129,22 +165,41 @@ namespace TaskTrackerService.Controllers
                 {
                     using(var tran = db.BeginTransaction())
                     {
-                        int parrotId = GetRandomEngineerParrotId();
+                        var parrot = GetRandomEngineerParrot();
 
-                        db.Insert(new Task
+                        var task = new Task
                         {
                             PublicId = Guid.NewGuid().ToString(),
-                            ParrotId = parrotId,
+                            ParrotId = parrot.Id,
                             Name = pair.name,
                             JiraId = pair.jiraId,
                             Description = postModel.Description,
                             Status = Common.Enums.TaskStatus.Active,
                             AssignedAmount = _taskPricing.GetAssignAmount(),
                             CompletedAmount = _taskPricing.GetCompletedAmount(),
-                        });
+                        };
+                        db.Insert(task);
 
-                        //TODO: events
-                        tran.Commit();
+                        bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskCreatedV1, task.PublicId,
+                        new TaskCreatedEventV1(new TaskCreatedEventV1Data
+                        {
+                            PublicId = task.PublicId,
+                            ParrotPublicId = parrot.PublicId,
+                            Name = task.Name,                        
+                            Description = task.Description,
+                            AssignedAmount = task.AssignedAmount,
+                            CompletedAmount = task.CompletedAmount,
+                        }), out IList<string> errors);
+
+                        if (sent)
+                        {
+                            tran.Commit();
+                        }
+                        else
+                        {
+                            ModelState.AddModelError("Topic", String.Join("; ", errors));
+                        }
                     }
                 }
 
@@ -183,10 +238,10 @@ namespace TaskTrackerService.Controllers
                 var tasks = db.Tasks.Where(t => t.Status == Common.Enums.TaskStatus.Active).ToArray();
                 foreach(var task in tasks)
                 {
-                    int randomParrotId = GetRandomEngineerParrotId();
-                    if(randomParrotId != task.ParrotId)
+                    var parrot = GetRandomEngineerParrot();
+                    if(parrot.Id != task.ParrotId)
                     {
-                        task.ParrotId = randomParrotId;
+                        task.ParrotId = parrot.Id;
                         db.Update(task);
 
                         // TODO: event for task
@@ -195,17 +250,16 @@ namespace TaskTrackerService.Controllers
             }            
         }
 
-        private int GetRandomEngineerParrotId()
+        private Parrot GetRandomEngineerParrot()
         {
             using (var db = new TaskTrackerDB())
             {
-                var publicIds = db.Parrots
-                    .Where(p => p.RoleId == (int)RoleIds.Engineer)
-                    .Select(p => p.Id)
+                var parrots = db.Parrots
+                    .Where(p => p.RoleId == (int)RoleIds.Engineer)                    
                     .ToArray();
                 // todo: replace with skip-take
-                var idx = new Random().Next(publicIds.Length);
-                return publicIds[idx];
+                var idx = new Random().Next(parrots.Length);
+                return parrots[idx];
             }
         }        
 

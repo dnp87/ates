@@ -92,6 +92,7 @@ namespace AccountingService.Background
                                 ParrotId = parrot.Id,
                                 AssignedAmount = typedEvent.Data.AssignedAmount,
                                 CompletedAmount = typedEvent.Data.CompletedAmount,
+                                Status = Common.Enums.TaskStatus.Active
                             };
 
                             int taskId = db.InsertWithInt32Identity(task);
@@ -123,6 +124,7 @@ namespace AccountingService.Background
                             ParrotId = parrot.Id,
                             AssignedAmount = typedEvent.Data.AssignedAmount,
                             CompletedAmount = typedEvent.Data.CompletedAmount,
+                            Status = Common.Enums.TaskStatus.Active
                         };
 
                         int taskId = db.InsertWithInt32Identity(task);

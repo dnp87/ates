@@ -1,0 +1,66 @@
+﻿{
+  "definitions": {
+    "ParrotUpdatedEventV1Data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "Email": {
+          "type": "string"
+        },
+        "PublicId": {
+          "type": "string"
+        },
+        "RoleId": {
+          "type": "integer",
+          "enum": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      },
+      "required": [
+        "Name",
+        "Email",
+        "PublicId",
+        "RoleId"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "EventName": {
+      "type": "string",
+      "enum": [ "ParrotUpdated" ]
+    },
+    "EventVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "Data": {
+      "$ref": "#/definitions/ParrotUpdatedEventV1Data"
+    },
+    "EventId": {
+      "type": "string"
+    },
+    "EventDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "EventName",
+    "EventVersion",
+    "Data",
+    "EventId",
+    "EventDate"
+  ]
+}

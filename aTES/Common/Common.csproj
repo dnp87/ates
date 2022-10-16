@@ -104,6 +104,7 @@
     <Compile Include="Enums\RoleIds.cs" />
     <Compile Include="Enums\TaskStatus.cs" />
     <Compile Include="Events\EventBase.cs" />
+    <Compile Include="Events\ParrotUpdatedEventV1.cs" />
     <Compile Include="Events\ParrotCreatedEventV2.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />
     <Compile Include="Pricing\ITaskPricing.cs" />
@@ -118,6 +119,9 @@
   <ItemGroup>
     <None Include="App.config" />
     <AdditionalFiles Include="JsonSchemas\ParrotCreated.2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\ParrotUpdated.1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <None Include="packages.config" />

@@ -78,16 +78,16 @@ namespace AuthService.Controllers
                         Email = value.Email,
                         RoleId = (RoleIds) value.RoleId,
                         PublicId = newParrot.PublicId,
-                    }));
-                    
-                    if(sent)
+                    }), out IList<string> errors);
+
+                    if (sent)
                     {
-                        db.CommitTransaction();
+                        tran.Commit();
                     }
                     else
                     {
-                        ModelState.AddModelError("Topic", "failed to sent topic");
-                    }    
+                        ModelState.AddModelError("Topic", String.Join("; ", errors));
+                    }
                 }
 
                 if (ModelState.IsValid)
@@ -102,32 +102,54 @@ namespace AuthService.Controllers
         }
 
         // PUT: api/Parrots/...
-        public void Put(Guid id, [FromBody] ParrotPostPutModel value)
+        public HttpResponseMessage Put(Guid id, [FromBody] ParrotPostPutModel value)
         {
             using (var db = new AuthDB())
             {
-                // todo: remove custom get
                 var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == id.ToString());
                 if (parrot == null)
                 {
-                    db.Insert(new Parrot
-                    {
-                        PublicId = id.ToString(),
-                        Name = value.Name,
-                        Email = value.Email,
-                        RoleId = value.RoleId,
-                    });
+                    return Post(value);
                 }
                 else
                 {
-                    parrot.Name = value.Name;
-                    parrot.Email = value.Email;
-                    parrot.RoleId = value.RoleId;
-                    db.Update(parrot);
+                    using (var tran = db.BeginTransaction())
+                    {
+                        parrot.Name = value.Name;
+                        parrot.Email = value.Email;
+                        parrot.RoleId = value.RoleId;
+                        db.Update(parrot);
+
+                        bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.ParrotCreatedV2, parrot.PublicId,
+                        new ParrotCreatedEventV2(new ParrotCreatedEventV2Data
+                        {
+                            Name = value.Name,
+                            Email = value.Email,
+                            RoleId = (RoleIds)value.RoleId,
+                            PublicId = parrot.PublicId,
+                        }), out IList<string> errors);
+
+                        if (sent)
+                        {
+                            tran.Commit();
+                        }
+                        else
+                        {
+                            ModelState.AddModelError("Topic", String.Join("; ", errors));
+                        }                        
+                    }                        
+
+                    if (ModelState.IsValid)
+                    {
+                        return new HttpResponseMessage(HttpStatusCode.OK);
+                    }
+                    else
+                    {
+                        return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+                    }
                 }
             }
         }
-
-        // todo: events
     }
 }

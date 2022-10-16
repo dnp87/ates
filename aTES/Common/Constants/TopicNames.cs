@@ -11,5 +11,7 @@ namespace Common.Constants
         public const string ParrotCreatedV1 = "parrot.created.1";
 
         public const string ParrotCreatedV2 = "parrot.created.2";
+
+        public const string ParrotUpdatedV1 = "parrot.updated.1";
     }
 }

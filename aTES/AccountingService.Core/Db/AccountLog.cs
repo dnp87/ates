@@ -23,7 +23,7 @@ namespace AccountingService.Core.Db
         public int AccountId { get; set; }
 
         [Column(Name = "TASK_ID")]
-        public int TaskId { get; set; }
+        public int? TaskId { get; set; }
 
         [Column(Name = "AMOUNT")]
         public int Amount { get; set; }

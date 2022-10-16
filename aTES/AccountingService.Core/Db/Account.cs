@@ -1,4 +1,5 @@
 ﻿using LinqToDB.Mapping;
+using System.Collections.Generic;
 
 namespace AccountingService.Core.Db
 {
@@ -19,5 +20,8 @@ namespace AccountingService.Core.Db
         
         [Column(Name = "AMOUNT")]
         public int Amount { get; set; }
+
+        [Association(ThisKey = nameof(Id), OtherKey = nameof(Db.AccountLog.AccountId))]
+        public IEnumerable<AccountLog> AccountLog { get; set; }
     }
 }

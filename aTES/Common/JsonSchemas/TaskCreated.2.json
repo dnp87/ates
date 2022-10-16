@@ -30,8 +30,8 @@
             "null"
           ]
         },
-        "ParrotId": {
-          "type": "integer"
+        "ParrotPublicId": {
+          "type": "string"
         },
         "AssignedAmount": {
           "type": "integer"
@@ -45,7 +45,7 @@
         "Name",
         "JiraId",
         "Description",
-        "ParrotId",
+        "ParrotPublicId",
         "AssignedAmount",
         "CompletedAmount"
       ]

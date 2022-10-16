@@ -27,7 +27,7 @@ namespace Common.Events
         public string Name { get; set; }
         public string JiraId { get; set; }
         public string Description { get; set; }
-        public int ParrotId { get; set; }
+        public string ParrotPublicId { get; set; }
         public int AssignedAmount { get; set; }
         public int CompletedAmount { get; set; }
     }

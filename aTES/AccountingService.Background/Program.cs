@@ -3,16 +3,9 @@ using Common.Constants;
 using Common.ConsumerWrapper;
 using Common.Events;
 using Common.Utils;
-using Confluent.Kafka;
 using LinqToDB;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AccountingService.Background
 {
@@ -37,13 +30,24 @@ namespace AccountingService.Background
                 {
                     using (var db = new AccountingDB())
                     {
-                        db.Insert(new Parrot
+                        using(var tran = db.BeginTransaction())
                         {
-                            Email = typedEvent.Data.Email,
-                            Name = typedEvent.Data.Name,
-                            PublicId = typedEvent.Data.PublicId,
-                            RoleId = (int)typedEvent.Data.RoleId
-                        });
+                            int parrotId = db.InsertWithInt32Identity(new Parrot
+                            {
+                                Email = typedEvent.Data.Email,
+                                Name = typedEvent.Data.Name,
+                                PublicId = typedEvent.Data.PublicId,
+                                RoleId = (int)typedEvent.Data.RoleId
+                            });
+
+                            db.Insert(new Account
+                            {
+                                ParrotId = parrotId,
+                                PublicId = Guid.NewGuid().ToString(),
+                            });
+
+                            db.CommitTransaction();
+                        }
                     }
                 });
         }        
@@ -75,36 +79,99 @@ namespace AccountingService.Background
                     {
                         if (TaskNameParser.TryParseJiraIdAndName(typedEvent.Data.Name, out (string jiraId, string name) pair))
                         {
+                            db.BeginTransaction();
+                            var parrot = db.Parrots.First(p => p.PublicId == typedEvent.Data.ParrotPublicId);
+                            var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
+
                             var task = new Core.Db.Task
                             {
                                 PublicId = typedEvent.Data.PublicId,
                                 Description = typedEvent.Data.Description,
                                 Name = pair.name,
                                 JiraId = pair.jiraId,
-                                ParrotId = typedEvent.Data.ParrotId,
+                                ParrotId = parrot.Id,
                                 AssignedAmount = typedEvent.Data.AssignedAmount,
                                 CompletedAmount = typedEvent.Data.CompletedAmount,
                             };
 
-                            db.Insert(task);
+                            int taskId = db.InsertWithInt32Identity(task);
+                            CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.PublicId, -typedEvent.Data.AssignedAmount);
+                            db.CommitTransaction();
                         }
                     }
-                });            
+                });
         }
 
         static void ConsumeTaskCreatedV2Topic()
         {
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCreatedV2,
+                (TaskCreatedEventV2 typedEvent) =>
+                {
+                    using (var db = new AccountingDB())
+                    {
+                        db.BeginTransaction();
 
+                        var parrot = db.Parrots.First(p => p.PublicId == typedEvent.Data.ParrotPublicId);
+                        var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
+
+                        var task = new Core.Db.Task
+                        {
+                            PublicId = typedEvent.Data.PublicId,
+                            Description = typedEvent.Data.Description,
+                            Name = typedEvent.Data.Name,
+                            JiraId = typedEvent.Data.JiraId,
+                            ParrotId = parrot.Id,
+                            AssignedAmount = typedEvent.Data.AssignedAmount,
+                            CompletedAmount = typedEvent.Data.CompletedAmount,
+                        };
+
+                        int taskId = db.InsertWithInt32Identity(task);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.PublicId, -typedEvent.Data.AssignedAmount);
+
+                        db.CommitTransaction();
+                    }
+                });
+        }
+
+        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int assignedAmount)
+        {
+            var parrot = db.Parrots.First(p => p.PublicId == parrotPublicId);
+            var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
+            var task = db.Tasks.First(a => a.PublicId == taskPublicId);
+
+            var accountLog = new AccountLog
+            {
+                AccountId = account.Id,
+                TaskId = task.Id,
+                Amount = -assignedAmount,
+                Created = DateTime.Now, //not for prod
+                PublicId = Guid.NewGuid().ToString(),
+            };
+            db.Insert(accountLog);
         }
 
         static void ConsumeTaskAssignedTopic()
         {
-
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskAssignedV1,
+                (TaskAssignedEventV1 typedEvent) =>
+                {
+                    using (var db = new AccountingDB())
+                    {
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -typedEvent.Data.AssingedAmount);
+                    }
+                });
         }
 
         static void ConsumeTaskCompletedTopic()
         {
-
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCompletedV1,
+                (TaskCompletedEventV1 typedEvent) =>
+                {
+                    using (var db = new AccountingDB())
+                    {
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, typedEvent.Data.CompletedAmount);
+                    }
+                });
         }
     }
 }

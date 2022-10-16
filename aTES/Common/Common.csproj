@@ -6,7 +6,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{88C7E439-1B98-4915-BA9D-08763DF378AF}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Common</RootNamespace>
     <AssemblyName>Common</AssemblyName>
@@ -106,6 +106,10 @@
     <Compile Include="Events\EventBase.cs" />
     <Compile Include="Events\ParrotUpdatedEventV1.cs" />
     <Compile Include="Events\ParrotCreatedEventV2.cs" />
+    <Compile Include="Events\TaskAssignedEventV1.cs" />
+    <Compile Include="Events\TaskCompletedEventV1.cs" />
+    <Compile Include="Events\TaskCreatedEventV2.cs" />
+    <Compile Include="Events\TaskCreatedEventV1.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />
     <Compile Include="Pricing\ITaskPricing.cs" />
     <Compile Include="Pricing\TaskPricing.cs" />
@@ -122,6 +126,18 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <AdditionalFiles Include="JsonSchemas\ParrotUpdated.1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskCreated.1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskCreated.2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskAssingned.1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskCompleted.1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <None Include="packages.config" />

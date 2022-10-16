@@ -11,6 +11,7 @@ using Common.Enums;
 using Common.Auth;
 using Common.Constants;
 using Common.Pricing;
+using System.Text.RegularExpressions;
 
 namespace TaskTrackerService.Controllers
 {
@@ -76,25 +77,98 @@ namespace TaskTrackerService.Controllers
         }
 
         // POST: api/Tasks
-        public void Post([FromBody]TaskPostModel postModel)
+        public HttpResponseMessage Post([FromBody]TaskPostModelV2 postModel)
         {
             using (var db = new TaskTrackerDB())
             {
-                int parrotId = GetRandomEngineerParrotId();
-
-                db.Insert(new Task
+                using(var tran = db.BeginTransaction())
                 {
-                    PublicId = Guid.NewGuid().ToString(),
-                    ParrotId = parrotId,
-                    Name = postModel.Name,
-                    Description = postModel.Description,
-                    Status = Common.Enums.TaskStatus.Active,
-                    AssignedAmount = _taskPricing.GetAssignAmount(),
-                    CompletedAmount = _taskPricing.GetCompletedAmount(),
-                });
+                    int parrotId = GetRandomEngineerParrotId();
+
+                    db.Insert(new Task
+                    {
+                        PublicId = Guid.NewGuid().ToString(),
+                        ParrotId = parrotId,
+                        Name = postModel.Name,
+                        JiraId = postModel.JiraId,
+                        Description = postModel.Description,
+                        Status = Common.Enums.TaskStatus.Active,
+                        AssignedAmount = _taskPricing.GetAssignAmount(),
+                        CompletedAmount = _taskPricing.GetCompletedAmount(),
+                    });
+
+                    //TODO: events
+                    tran.Commit();
+                }
             }
 
-            //TODO: events
+            if (ModelState.IsValid)
+            {
+                return Request.CreateResponse(HttpStatusCode.OK);
+            }
+            else
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+            }
+        }
+
+        // POST: api/Tasks/v1
+        [HttpPost]
+        [Route("api/Tasks/v1")]
+        public HttpResponseMessage Postv1([FromBody] TaskPostModelV1 postModel)
+        {            
+            if(!TryParseJiraIdAndName(postModel.Name, out (string jiraId, string name) pair))
+            {
+                ModelState.AddModelError(nameof(postModel.Name), "Can't extract jira id and name from input string");
+            }
+
+            if (ModelState.IsValid)
+            {
+                using (var db = new TaskTrackerDB())
+                {
+                    using(var tran = db.BeginTransaction())
+                    {
+                        int parrotId = GetRandomEngineerParrotId();
+
+                        db.Insert(new Task
+                        {
+                            PublicId = Guid.NewGuid().ToString(),
+                            ParrotId = parrotId,
+                            Name = pair.name,
+                            JiraId = pair.jiraId,
+                            Description = postModel.Description,
+                            Status = Common.Enums.TaskStatus.Active,
+                            AssignedAmount = _taskPricing.GetAssignAmount(),
+                            CompletedAmount = _taskPricing.GetCompletedAmount(),
+                        });
+
+                        //TODO: events
+                        tran.Commit();
+                    }
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK);
+            }
+            else
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+            }
+        }
+
+        private bool TryParseJiraIdAndName(string name, out (string jiraId, string name) pair)
+        {
+            var regex = new Regex(@"\[(.+)\]\s+[\-]\s+(.*)");
+            var match = regex.Match(name);
+            if(match.Success)
+            {
+                pair = (match.Groups[0].Value, match.Groups[1].Value);
+                return false;
+            }
+            else
+            {
+                pair = (String.Empty, name);
+                return false;
+            }
         }
 
         // PUT: api/Tasks/Complete/{public_id}

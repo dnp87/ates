@@ -92,7 +92,7 @@ namespace AuthService.Controllers
 
                 if (ModelState.IsValid)
                 {
-                    return new HttpResponseMessage(HttpStatusCode.OK);
+                    return Request.CreateResponse(HttpStatusCode.OK);
                 }
                 else
                 {
@@ -142,7 +142,7 @@ namespace AuthService.Controllers
 
                     if (ModelState.IsValid)
                     {
-                        return new HttpResponseMessage(HttpStatusCode.OK);
+                        return Request.CreateResponse(HttpStatusCode.OK);
                     }
                     else
                     {

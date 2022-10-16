@@ -15,9 +15,16 @@ namespace Common
         {
             JSchemaGenerator generator = new JSchemaGenerator();
 
-            JSchema schema = generator.Generate(typeof(ParrotUpdatedEventV1));
+            JSchema schema1 = generator.Generate(typeof(TaskCompletedEventV1));            ;
+            JSchema schema2 = generator.Generate(typeof(TaskAssignedEventV1));
+            JSchema schema3 = generator.Generate(typeof(TaskCreatedEventV1));
+            JSchema schema4 = generator.Generate(typeof(TaskCreatedEventV2));
 
-            string test = schema.ToString();
+
+            string test1 = schema1.ToString();
+            string test2 = schema2.ToString();
+            string test3 = schema3.ToString();
+            string test4 = schema4.ToString();
         }
     }
 }

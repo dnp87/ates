@@ -17,8 +17,10 @@ namespace AnalyticsService.Background
     {
         static void Main(string[] args)
         {
-            System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic);
-            System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic);
+            Task.WhenAll(
+                System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
+                System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic)
+                ).Wait();
         }
 
         static void ConsumeParrotCreatedTopic()
@@ -55,7 +57,7 @@ namespace AnalyticsService.Background
                 {
                     // consume timeout, no-op
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     builder.Close();
                 }
@@ -96,7 +98,7 @@ namespace AnalyticsService.Background
                 {
                     // consume timeout, no-op
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     builder.Close();
                 }

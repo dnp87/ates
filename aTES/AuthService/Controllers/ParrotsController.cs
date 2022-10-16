@@ -121,8 +121,8 @@ namespace AuthService.Controllers
                         db.Update(parrot);
 
                         bool sent = _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.ParrotCreatedV2, parrot.PublicId,
-                        new ParrotCreatedEventV2(new ParrotCreatedEventV2Data
+                        _parrotCreateProducer, TopicNames.ParrotUpdatedV1, parrot.PublicId,
+                        new ParrotUpdatedEventV1(new ParrotUpdatedEventV1Data
                         {
                             Name = value.Name,
                             Email = value.Email,

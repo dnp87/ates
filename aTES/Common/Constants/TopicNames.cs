@@ -13,5 +13,10 @@ namespace Common.Constants
         public const string ParrotCreatedV2 = "parrot.created.2";
 
         public const string ParrotUpdatedV1 = "parrot.updated.1";
+
+        public const string TaskCreatedV1 = "task.created.1";
+        public const string TaskCreatedV2 = "task.created.2";
+        public const string TaskAssignedV1 = "task.assigned.1";
+        public const string TaskCompletedV1 = "task.completed.1";
     }
 }

@@ -6,6 +6,7 @@ using System.Threading;
 using TaskTrackerService.Db;
 using LinqToDB;
 using Common.Events;
+using System.Linq;
 
 namespace TaskTrackerService
 {
@@ -68,16 +69,16 @@ namespace TaskTrackerService
                     while (true)
                     {
                         var consumeResult = builder.Consume(cancelToken.Token);
-                        var createdEvent = JsonConvert.DeserializeObject<ParrotUpdatedEventV1>(consumeResult.Message.Value);
+                        var updatedEvent = JsonConvert.DeserializeObject<ParrotUpdatedEventV1>(consumeResult.Message.Value);
                         using (var db = new TaskTrackerDB())
                         {
-                            db.Insert(new Parrot
-                            {
-                                Email = createdEvent.Data.Email,
-                                Name = createdEvent.Data.Name,
-                                PublicId = createdEvent.Data.PublicId,
-                                RoleId = (int)createdEvent.Data.RoleId
-                            });
+                            var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == updatedEvent.Data.PublicId.ToString());
+                            parrot.Email = updatedEvent.Data.Email;
+                            parrot.Name = updatedEvent.Data.Name;
+                            parrot.PublicId = updatedEvent.Data.PublicId;
+                            parrot.RoleId = (int) updatedEvent.Data.RoleId;
+
+                            db.Update(parrot);
                         }
                         Thread.Sleep(1000);
                     }

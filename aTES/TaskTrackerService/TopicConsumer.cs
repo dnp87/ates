@@ -12,11 +12,13 @@ namespace TaskTrackerService
 {
     public class TopicConsumer
     {
+        private const string ConsumerGroupName = "task_tracker_service_consumer_group";
+
         public void ConsumeParrotCreatedTopic()
         {
             var conf = new ConsumerConfig
             {
-                GroupId = "st_consumer_group",
+                GroupId = ConsumerGroupName,
                 BootstrapServers = "localhost:9092",
             };
             using (var builder = new ConsumerBuilder<string,string>(conf).Build())
@@ -57,7 +59,7 @@ namespace TaskTrackerService
         {
             var conf = new ConsumerConfig
             {
-                GroupId = "st_consumer_group",
+                GroupId = ConsumerGroupName,
                 BootstrapServers = "localhost:9092",
             };
             using (var builder = new ConsumerBuilder<string, string>(conf).Build())

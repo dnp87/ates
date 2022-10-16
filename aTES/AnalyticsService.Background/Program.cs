@@ -15,6 +15,8 @@ namespace AnalyticsService.Background
 {
     internal class Program
     {
+        private const string ConsumerGroupName = "analytics_service_consumer_group";
+
         static void Main(string[] args)
         {
             Task.WhenAll(
@@ -27,7 +29,7 @@ namespace AnalyticsService.Background
         {
             var conf = new ConsumerConfig
             {
-                GroupId = "st_consumer_group",
+                GroupId = ConsumerGroupName,
                 BootstrapServers = "localhost:9092",
             };
             using (var builder = new ConsumerBuilder<string, string>(conf).Build())
@@ -68,7 +70,7 @@ namespace AnalyticsService.Background
         {
             var conf = new ConsumerConfig
             {
-                GroupId = "st_consumer_group",
+                GroupId = ConsumerGroupName,
                 BootstrapServers = "localhost:9092",
             };
             using (var builder = new ConsumerBuilder<string, string>(conf).Build())

@@ -214,17 +214,37 @@ namespace TaskTrackerService.Controllers
         // PUT: api/Tasks/Complete/{public_id}
         [Route("api/Tasks/Complete/{id}")]
         [HttpPut]
-        public void Complete(Guid id)
+        public HttpResponseMessage Complete(Guid id)
         {
             using (var db = new TaskTrackerDB())
             {
-                db.Tasks
-                    .Where(p => p.PublicId == id.ToString())
-                    .Set(t => t.Status, TaskStatus.Completed)
-                    .Update();
-            }
+                db.BeginTransaction();
+                var task = db.Tasks.LoadWith(t => t.Parrot).FirstOrDefault(t => t.PublicId == id.ToString());
+                task.Status = TaskStatus.Completed;
+                task.DateCompleted = DateTime.Now;
+                db.Update(task);
 
-            //TODO: events
+                bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskCompletedV1, Guid.NewGuid().ToString(),
+                        new TaskCompletedEventV1(new TaskCompletedEventV1Data
+                        {
+                            CompletedAmount = task.CompletedAmount,
+                            CompletedDate = task.DateCompleted,
+                            ParrotPublicId = task.Parrot.PublicId,
+                            TaskPublicId = task.PublicId
+                        }), out IList<string> errors);
+                
+                if (sent)
+                {
+                    db.CommitTransaction();
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
+                else
+                {
+                    db.RollbackTransaction();
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+                }
+            }
         }
 
         // POST: api/shuffle
@@ -241,13 +261,30 @@ namespace TaskTrackerService.Controllers
                     var parrot = GetRandomEngineerParrot();
                     if(parrot.Id != task.ParrotId)
                     {
+                        db.BeginTransaction();
                         task.ParrotId = parrot.Id;
                         db.Update(task);
 
-                        // TODO: event for task
+                        bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskAssignedV1, Guid.NewGuid().ToString(),
+                        new TaskAssignedEventV1(new TaskAssignedEventV1Data
+                        {                            
+                            TaskPublicId = task.PublicId,
+                            ParrotPublicId = parrot.PublicId,
+                            AssingedAmount = task.AssignedAmount,
+                        }), out IList<string> errors);
+
+                        if (sent)
+                        {
+                            db.CommitTransaction();
+                        }
+                        else
+                        {
+                            db.RollbackTransaction();
+                        }
                     }
                 }
-            }            
+            }
         }
 
         private Parrot GetRandomEngineerParrot()
@@ -255,13 +292,13 @@ namespace TaskTrackerService.Controllers
             using (var db = new TaskTrackerDB())
             {
                 var parrots = db.Parrots
-                    .Where(p => p.RoleId == (int)RoleIds.Engineer)                    
+                    .Where(p => p.RoleId == (int)RoleIds.Engineer)
                     .ToArray();
                 // todo: replace with skip-take
                 var idx = new Random().Next(parrots.Length);
                 return parrots[idx];
             }
-        }        
+        }
 
         // no task deletion
     }

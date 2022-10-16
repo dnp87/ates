@@ -1,14 +1,14 @@
-﻿using Common.Enums;
-using LinqToDB.Mapping;
+﻿using LinqToDB.Mapping;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace TaskTrackerService.Db
+namespace AnalyticsService.Core.Db
 {
-    [Table(Name = "TASKS")]
-    public class Task
+    [Table(Name = "TASKS_ANALYTICS")]
+    public class TaskAnalytics
     {
         [PrimaryKey]
         [Identity]
@@ -28,22 +28,13 @@ namespace TaskTrackerService.Db
         [Column(Name = "DESCRIPTION")]
         public string Description { get; set; }
 
-        [Column(Name = "STATUS_ID")]
-        public TaskStatus Status { get; set; }
-
         [Column(Name = "PARROT_ID")]
         public int ParrotId { get; set; }
 
-        [Association(ThisKey = nameof(ParrotId), OtherKey = nameof(Db.Parrot.Id))]
-        public Parrot Parrot { get; set; }
-
-        [Column(Name = "ASSIGNED_AMOUNT")]
-        public int AssignedAmount { get; set; }
+        [Column(Name = "DATE_COMPLETED")]
+        public DateTime DateCompleted { get; set; }
 
         [Column(Name = "COMPLETED_AMOUNT")]
         public int CompletedAmount { get; set; }
-
-        [Column(Name = "DATE_COMPLETED")]
-        public DateTime DateCompleted { get; set; }
     }
 }

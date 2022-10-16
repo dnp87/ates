@@ -1,11 +1,8 @@
 ﻿using Common.Enums;
 using LinqToDB.Mapping;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 
-namespace TaskTrackerService.Db
+namespace AccountingService.Core.Db
 {
     [Table(Name = "TASKS")]
     public class Task
@@ -21,9 +18,6 @@ namespace TaskTrackerService.Db
 
         [Column(Name = "NAME")]
         public string Name { get; set; }
-
-        [Column(Name = "JIRA_ID")]
-        public string JiraId { get; set; }
 
         [Column(Name = "DESCRIPTION")]
         public string Description { get; set; }

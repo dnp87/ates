@@ -8,6 +8,11 @@ namespace Common.Events
         public override string EventName => EventNames.TaskCreated;
         public override int EventVersion => 2;
 
+        public TaskCreatedEventV2() : base(null)
+        {
+
+        }
+
         public TaskCreatedEventV2(TaskCreatedEventV2Data data) : base(data)
         {
         }

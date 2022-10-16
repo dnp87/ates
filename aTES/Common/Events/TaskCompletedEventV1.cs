@@ -12,6 +12,11 @@ namespace Common.Events
         public override string EventName => EventNames.TaskCompleted;
         public override int EventVersion => 1;
 
+        public TaskCompletedEventV1() : base(null)
+        {
+
+        }
+
         public TaskCompletedEventV1(TaskCompletedEventV1Data data) : base(data)
         {
         }

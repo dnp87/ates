@@ -8,6 +8,11 @@ namespace Common.Events
         public override string EventName => EventNames.TaskAssigned;
         public override int EventVersion => 1;
 
+        public TaskAssignedEventV1() : base(null)
+        {
+
+        }
+
         public TaskAssignedEventV1(TaskAssignedEventV1Data data) : base(data)
         {
         }

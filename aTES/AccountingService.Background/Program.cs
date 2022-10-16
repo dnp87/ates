@@ -133,7 +133,7 @@ namespace AccountingService.Background
                 });
         }
 
-        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int assignedAmount)
+        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int amount)
         {
             var parrot = db.Parrots.First(p => p.PublicId == parrotPublicId);
             var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
@@ -143,7 +143,7 @@ namespace AccountingService.Background
             {
                 AccountId = account.Id,
                 TaskId = task.Id,
-                Amount = -assignedAmount,
+                Amount = amount,
                 Created = DateTime.Now, //not for prod
                 PublicId = Guid.NewGuid().ToString(),
             };

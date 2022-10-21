@@ -2,46 +2,55 @@
 using Confluent.Kafka;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using System.Web;
 using TaskTrackerService.Db;
 using LinqToDB;
+using Common.Events;
+using System.Linq;
+using System.Configuration;
+using Common.ConsumerWrapper;
 
 namespace TaskTrackerService
 {
     public class TopicConsumer
-    {
-        public void ConsumeTopics()
+    {        
+        public void ConsumeParrotCreatedTopic()
         {
-            var conf = new ConsumerConfig
-            {
-                GroupId = "st_consumer_group",
-                BootstrapServers = "localhost:9092",
-            };
-            using (var builder = new ConsumerBuilder<string,string>(conf).Build())
-            {
-                builder.Subscribe(TopicNames.ParrotCreatedV1);
-                var cancelToken = new CancellationTokenSource();
-                try
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.ParrotCreatedV2,
+                (ParrotCreatedEventV2 typedEvent) =>
                 {
-                    while (true)
+                    using (var db = new TaskTrackerDB())
                     {
-                        var consumeResult = builder.Consume(cancelToken.Token);
-                        var parrot = JsonConvert.DeserializeObject<Parrot>(consumeResult.Message.Value);
-                        using(var db = new TaskTrackerDB())
+                        db.Insert(new Parrot
                         {
-                            db.Insert(parrot);
-                        }
-                        Thread.Sleep(1000);
+                            Email = typedEvent.Data.Email,
+                            Name = typedEvent.Data.Name,
+                            PublicId = typedEvent.Data.PublicId,
+                            RoleId = (int)typedEvent.Data.RoleId
+                        });
                     }
-                }
-                catch (Exception)
+                });
+        }
+
+        public void ConsumeParrotUpdatedTopic()
+        {
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.ParrotUpdatedV1,
+                (ParrotUpdatedEventV1 typedEvent) =>
                 {
-                    builder.Close();
-                }
-            }            
+                    using (var db = new TaskTrackerDB())
+                    {
+                        var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == typedEvent.Data.PublicId.ToString());
+                        if(parrot != null)
+                        {
+                            parrot.Email = typedEvent.Data.Email;
+                            parrot.Name = typedEvent.Data.Name;
+                            parrot.PublicId = typedEvent.Data.PublicId;
+                            parrot.RoleId = (int)typedEvent.Data.RoleId;
+
+                            db.Update(parrot);
+                        }                        
+                    }
+                });            
         }
     }
 }

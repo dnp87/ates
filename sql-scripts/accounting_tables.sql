@@ -21,6 +21,7 @@ CREATE TABLE TASKS(
   -- STATUS: 1 - active, 2 - completed; TODO: create separate status table
   STATUS_ID INTEGER DEFAULT 1 NOT NULL,
   PARROT_ID INTEGER NOT NULL REFERENCES PARROTS(ID),
+  DATE_COMPLETED TIMESTAMP,
   ASSIGNED_AMOUNT INTEGER NOT NULL,  -- in a real system this would be a decimal
   COMPLETED_AMOUNT INTEGER NOT NULL,  -- in a real system this would be a decimal
   CONSTRAINT STATUS_VALUE_CHECK CHECK(STATUS_ID IN (1, 2)) 

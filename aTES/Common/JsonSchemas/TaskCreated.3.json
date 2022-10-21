@@ -1,0 +1,79 @@
+﻿{
+  "definitions": {
+    "TaskCreatedEventV3Data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "PublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "JiraId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "Description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ParrotPublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "PublicId",
+        "Name",
+        "JiraId",
+        "Description",
+        "ParrotPublicId"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "EventName": {
+      "type": "string",
+      "enum": [ "TaskCreated" ]
+    },
+    "EventVersion": {
+      "type": "integer",
+      "enum": [
+        3
+      ]
+    },
+    "Data": {
+      "$ref": "#/definitions/TaskCreatedEventV3Data"
+    },
+    "EventId": {
+      "type": "string"
+    },
+    "EventDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "EventName",
+    "EventVersion",
+    "Data",
+    "EventId",
+    "EventDate"
+  ]
+}

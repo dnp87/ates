@@ -2,6 +2,7 @@
 using Common.Constants;
 using Common.ConsumerWrapper;
 using Common.Events;
+using Common.Pricing;
 using Common.Utils;
 using LinqToDB;
 using System;
@@ -11,13 +12,14 @@ namespace AccountingService.Background
 {
     internal class Program
     {
+        private static ITaskPricing _taskPricing = new TaskPricing();
+
         static void Main(string[] args)
         {
             System.Threading.Tasks.Task.WhenAll(
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
-                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV1Topic),
-                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV2Topic),
+                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskAssignedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCompletedTopic)
                 ).Wait();
@@ -70,43 +72,10 @@ namespace AccountingService.Background
                 });
         }
 
-        static void ConsumeTaskCreatedV1Topic()
+        static void ConsumeTaskCreatedV3Topic()
         {
-            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCreatedV1,
-                (TaskCreatedEventV1 typedEvent) =>
-                {
-                    using (var db = new AccountingDB())
-                    {
-                        if (TaskNameParser.TryParseJiraIdAndName(typedEvent.Data.Name, out (string jiraId, string name) pair))
-                        {
-                            db.BeginTransaction();
-                            var parrot = db.Parrots.First(p => p.PublicId == typedEvent.Data.ParrotPublicId);
-                            var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
-
-                            var task = new Core.Db.Task
-                            {
-                                PublicId = typedEvent.Data.PublicId,
-                                Description = typedEvent.Data.Description,
-                                Name = pair.name,
-                                JiraId = pair.jiraId,
-                                ParrotId = parrot.Id,
-                                AssignedAmount = typedEvent.Data.AssignedAmount,
-                                CompletedAmount = typedEvent.Data.CompletedAmount,
-                                Status = Common.Enums.TaskStatus.Active
-                            };
-
-                            int taskId = db.InsertWithInt32Identity(task);
-                            CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.PublicId, -typedEvent.Data.AssignedAmount);
-                            db.CommitTransaction();
-                        }
-                    }
-                });
-        }
-
-        static void ConsumeTaskCreatedV2Topic()
-        {
-            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCreatedV2,
-                (TaskCreatedEventV2 typedEvent) =>
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCreatedV3,
+                (TaskCreatedEventV3 typedEvent) =>
                 {
                     using (var db = new AccountingDB())
                     {
@@ -122,13 +91,12 @@ namespace AccountingService.Background
                             Name = typedEvent.Data.Name,
                             JiraId = typedEvent.Data.JiraId,
                             ParrotId = parrot.Id,
-                            AssignedAmount = typedEvent.Data.AssignedAmount,
-                            CompletedAmount = typedEvent.Data.CompletedAmount,
+                            AssignedAmount = _taskPricing.GetAssignAmount(),
+                            CompletedAmount = _taskPricing.GetCompletedAmount(),
                             Status = Common.Enums.TaskStatus.Active
                         };
 
                         int taskId = db.InsertWithInt32Identity(task);
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.PublicId, -typedEvent.Data.AssignedAmount);
 
                         db.CommitTransaction();
                     }
@@ -154,24 +122,26 @@ namespace AccountingService.Background
 
         static void ConsumeTaskAssignedTopic()
         {
-            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskAssignedV1,
-                (TaskAssignedEventV1 typedEvent) =>
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskAssignedV2,
+                (TaskAssignedEventV2 typedEvent) =>
                 {
                     using (var db = new AccountingDB())
                     {
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -typedEvent.Data.AssingedAmount);
+                        var task = db.Tasks.First(a => a.PublicId == typedEvent.Data.TaskPublicId);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -task.AssignedAmount);
                     }
                 });
         }
 
         static void ConsumeTaskCompletedTopic()
         {
-            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCompletedV1,
-                (TaskCompletedEventV1 typedEvent) =>
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCompletedV2,
+                (TaskCompletedEventV2 typedEvent) =>
                 {
                     using (var db = new AccountingDB())
                     {
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, typedEvent.Data.CompletedAmount);
+                        var task = db.Tasks.First(a => a.PublicId == typedEvent.Data.TaskPublicId);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, task.CompletedAmount);
                     }
                 });
         }

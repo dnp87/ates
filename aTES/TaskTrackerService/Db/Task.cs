@@ -22,6 +22,9 @@ namespace TaskTrackerService.Db
         [Column(Name = "NAME")]
         public string Name { get; set; }
 
+        [Column(Name = "JIRA_ID")]
+        public string JiraId { get; set; }
+
         [Column(Name = "DESCRIPTION")]
         public string Description { get; set; }
 
@@ -33,5 +36,14 @@ namespace TaskTrackerService.Db
 
         [Association(ThisKey = nameof(ParrotId), OtherKey = nameof(Db.Parrot.Id))]
         public Parrot Parrot { get; set; }
+
+        [Column(Name = "ASSIGNED_AMOUNT")]
+        public int AssignedAmount { get; set; }
+
+        [Column(Name = "COMPLETED_AMOUNT")]
+        public int CompletedAmount { get; set; }
+
+        [Column(Name = "DATE_COMPLETED")]
+        public DateTime DateCompleted { get; set; }
     }
 }

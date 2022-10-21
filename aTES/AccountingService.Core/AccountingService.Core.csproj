@@ -72,6 +72,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Db\Account.cs" />
+    <Compile Include="Db\AccountingDB.cs" />
+    <Compile Include="Db\AccountLog.cs" />
+    <Compile Include="Db\Parrot.cs" />
+    <Compile Include="Db\Role.cs" />
+    <Compile Include="Db\Task.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

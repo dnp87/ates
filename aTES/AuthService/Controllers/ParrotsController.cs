@@ -9,23 +9,29 @@ using LinqToDB;
 using AuthService.Models;
 using Confluent.Kafka;
 using Common.Constants;
+using Common.ProducerWrapper;
+using Common.SchemaRegistry;
+using Common.Events;
+using Common.Enums;
 using System.Configuration;
-using Newtonsoft.Json;
 
 namespace AuthService.Controllers
 {
     public class ParrotsController : ApiController
     {
         private IProducer<string, string> _parrotCreateProducer;
+        private IProducerWrapper _producerWrapper;
 
         public ParrotsController() : base()
         {
             var conf = new ProducerConfig()
             {
-                BootstrapServers = "localhost:9092",
+                BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
             };
             var producer = new ProducerBuilder<string, string>(conf);
             _parrotCreateProducer = producer.Build();
+
+            _producerWrapper = new ProducerWrapper(new SchemaValidator());
         }
 
         // GET: api/parrots
@@ -49,55 +55,102 @@ namespace AuthService.Controllers
         }
 
         // POST: api/parrots
-        public void Post([FromBody] ParrotPostPutModel value)
+        public HttpResponseMessage Post([FromBody] ParrotPostPutModel value)
         {
             Parrot newParrot;
             using (var db = new AuthDB())
             {
-                newParrot = new Parrot
+                using (var tran = db.BeginTransaction())
                 {
-                    PublicId = Guid.NewGuid().ToString(),
-                    Name = value.Name,
-                    Email = value.Email,
-                    RoleId = value.RoleId,
-                };
-                db.Insert(newParrot);
-            }
-
-            _parrotCreateProducer.Produce(TopicNames.ParrotCreatedV1, new Message<string, string>
-            {
-                Key = newParrot.PublicId,
-                Value = JsonConvert.SerializeObject(newParrot),
-            });
-        }
-
-        // PUT: api/Parrots/...
-        public void Put(Guid id, [FromBody] ParrotPostPutModel value)
-        {
-            using (var db = new AuthDB())
-            {
-                // todo: remove custom get
-                var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == id.ToString());
-                if (parrot == null)
-                {
-                    db.Insert(new Parrot
+                    newParrot = new Parrot
                     {
-                        PublicId = id.ToString(),
+                        PublicId = Guid.NewGuid().ToString(),
                         Name = value.Name,
                         Email = value.Email,
                         RoleId = value.RoleId,
-                    });
+                    };
+                    db.Insert(newParrot);
+                    
+                    bool sent = _producerWrapper.TrySendMessage(
+                    _parrotCreateProducer, TopicNames.ParrotCreatedV2, newParrot.PublicId,
+                    new ParrotCreatedEventV2(new ParrotCreatedEventV2Data
+                    {
+                        Name = value.Name,
+                        Email = value.Email,
+                        RoleId = (RoleIds) value.RoleId,
+                        PublicId = newParrot.PublicId,
+                    }), out IList<string> errors);
+
+                    if (sent)
+                    {
+                        tran.Commit();
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("Topic", String.Join("; ", errors));
+                    }
+                }
+
+                if (ModelState.IsValid)
+                {
+                    return Request.CreateResponse(HttpStatusCode.OK);
                 }
                 else
                 {
-                    parrot.Name = value.Name;
-                    parrot.Email = value.Email;
-                    parrot.RoleId = value.RoleId;
-                    db.Update(parrot);
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
                 }
             }
         }
 
-        // todo: events
+        // PUT: api/Parrots/...
+        public HttpResponseMessage Put(Guid id, [FromBody] ParrotPostPutModel value)
+        {
+            using (var db = new AuthDB())
+            {
+                var parrot = db.Parrots.FirstOrDefault(p => p.PublicId == id.ToString());
+                if (parrot == null)
+                {
+                    return Post(value);
+                }
+                else
+                {
+                    using (var tran = db.BeginTransaction())
+                    {
+                        parrot.Name = value.Name;
+                        parrot.Email = value.Email;
+                        parrot.RoleId = value.RoleId;
+                        db.Update(parrot);
+
+                        bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.ParrotUpdatedV1, parrot.PublicId,
+                        new ParrotUpdatedEventV1(new ParrotUpdatedEventV1Data
+                        {
+                            Name = value.Name,
+                            Email = value.Email,
+                            RoleId = (RoleIds)value.RoleId,
+                            PublicId = parrot.PublicId,
+                        }), out IList<string> errors);
+
+                        if (sent)
+                        {
+                            tran.Commit();
+                        }
+                        else
+                        {
+                            ModelState.AddModelError("Topic", String.Join("; ", errors));
+                        }                        
+                    }                        
+
+                    if (ModelState.IsValid)
+                    {
+                        return Request.CreateResponse(HttpStatusCode.OK);
+                    }
+                    else
+                    {
+                        return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+                    }
+                }
+            }
+        }
     }
 }

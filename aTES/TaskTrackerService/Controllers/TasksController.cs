@@ -10,12 +10,40 @@ using TaskTrackerService.Models;
 using Common.Enums;
 using Common.Auth;
 using Common.Constants;
+using Common.Pricing;
+using System.Text.RegularExpressions;
+using Common.Utils;
+using Confluent.Kafka;
+using Common.ProducerWrapper;
+using System.Configuration;
+using Common.SchemaRegistry;
+using Common.Events;
 
 namespace TaskTrackerService.Controllers
 {
     [ServiceAuth]
     public class TasksController : ApiController
     {
+        private readonly ITaskPricing _taskPricing;
+        private IProducer<string, string> _parrotCreateProducer;
+        private IProducerWrapper _producerWrapper;
+
+        public TasksController() : base()
+        {
+            //todo: dependency injection
+            _taskPricing = new TaskPricing();
+
+            var conf = new ProducerConfig()
+            {
+                BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
+            };
+            var producer = new ProducerBuilder<string, string>(conf);
+            _parrotCreateProducer = producer.Build();
+
+            _producerWrapper = new ProducerWrapper(new SchemaValidator());
+
+        }
+
         // GET: api/Tasks
         public IEnumerable<Task> Get()
         {
@@ -66,39 +94,157 @@ namespace TaskTrackerService.Controllers
         }
 
         // POST: api/Tasks
-        public void Post([FromBody]TaskPostModel postModel)
+        public HttpResponseMessage Post([FromBody]TaskPostModelV2 postModel)
         {
             using (var db = new TaskTrackerDB())
             {
-                int parrotId = GetRandomEngineerParrotId();
-
-                db.Insert(new Task
+                using(var tran = db.BeginTransaction())
                 {
-                    PublicId = Guid.NewGuid().ToString(),
-                    ParrotId = parrotId,
-                    Name = postModel.Name,
-                    Description = postModel.Description,
-                    Status = Common.Enums.TaskStatus.Active,
-                });
+                    var parrot = GetRandomEngineerParrot();
+
+                    var task = new Task
+                    {
+                        PublicId = Guid.NewGuid().ToString(),
+                        ParrotId = parrot.Id,
+                        Name = postModel.Name,
+                        JiraId = postModel.JiraId,
+                        Description = postModel.Description,
+                        Status = Common.Enums.TaskStatus.Active,
+                        AssignedAmount = _taskPricing.GetAssignAmount(),
+                        CompletedAmount = _taskPricing.GetCompletedAmount(),
+                    };
+                    db.Insert(task);
+
+                    bool sent = _producerWrapper.TrySendMessage(
+                    _parrotCreateProducer, TopicNames.TaskCreatedV2, task.PublicId,
+                    new TaskCreatedEventV2(new TaskCreatedEventV2Data
+                    {
+                        PublicId = task.PublicId,
+                        ParrotPublicId = parrot.PublicId,
+                        Name = task.Name,
+                        JiraId = task.JiraId,
+                        Description = task.Description,
+                        AssignedAmount = task.AssignedAmount,
+                        CompletedAmount = task.CompletedAmount,
+                    }), out IList<string> errors);
+
+                    if (sent)
+                    {
+                        tran.Commit();
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("Topic", String.Join("; ", errors));
+                    }
+                }
             }
 
-            //TODO: events
+            if (ModelState.IsValid)
+            {
+                return Request.CreateResponse(HttpStatusCode.OK);
+            }
+            else
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+            }
         }
+
+        // POST: api/Tasks/v1
+        [HttpPost]
+        [Route("api/Tasks/v1")]
+        public HttpResponseMessage Postv1([FromBody] TaskPostModelV1 postModel)
+        {            
+            if(!TaskNameParser.TryParseJiraIdAndName(postModel.Name, out (string jiraId, string name) pair))
+            {
+                ModelState.AddModelError(nameof(postModel.Name), "Can't extract jira id and name from input string");
+            }
+
+            if (ModelState.IsValid)
+            {
+                using (var db = new TaskTrackerDB())
+                {
+                    using(var tran = db.BeginTransaction())
+                    {
+                        var parrot = GetRandomEngineerParrot();
+
+                        var task = new Task
+                        {
+                            PublicId = Guid.NewGuid().ToString(),
+                            ParrotId = parrot.Id,
+                            Name = pair.name,
+                            JiraId = pair.jiraId,
+                            Description = postModel.Description,
+                            Status = Common.Enums.TaskStatus.Active,
+                            AssignedAmount = _taskPricing.GetAssignAmount(),
+                            CompletedAmount = _taskPricing.GetCompletedAmount(),
+                        };
+                        db.Insert(task);
+
+                        bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskCreatedV1, task.PublicId,
+                        new TaskCreatedEventV1(new TaskCreatedEventV1Data
+                        {
+                            PublicId = task.PublicId,
+                            ParrotPublicId = parrot.PublicId,
+                            Name = task.Name,                        
+                            Description = task.Description,
+                            AssignedAmount = task.AssignedAmount,
+                            CompletedAmount = task.CompletedAmount,
+                        }), out IList<string> errors);
+
+                        if (sent)
+                        {
+                            tran.Commit();
+                        }
+                        else
+                        {
+                            ModelState.AddModelError("Topic", String.Join("; ", errors));
+                        }
+                    }
+                }
+
+                return Request.CreateResponse(HttpStatusCode.OK);
+            }
+            else
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+            }
+        }        
 
         // PUT: api/Tasks/Complete/{public_id}
         [Route("api/Tasks/Complete/{id}")]
         [HttpPut]
-        public void Complete(Guid id)
+        public HttpResponseMessage Complete(Guid id)
         {
             using (var db = new TaskTrackerDB())
             {
-                db.Tasks
-                    .Where(p => p.PublicId == id.ToString())
-                    .Set(t => t.Status, TaskStatus.Completed)
-                    .Update();
-            }
+                db.BeginTransaction();
+                var task = db.Tasks.LoadWith(t => t.Parrot).FirstOrDefault(t => t.PublicId == id.ToString());
+                task.Status = TaskStatus.Completed;
+                task.DateCompleted = DateTime.Now;
+                db.Update(task);
 
-            //TODO: events
+                bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskCompletedV1, Guid.NewGuid().ToString(),
+                        new TaskCompletedEventV1(new TaskCompletedEventV1Data
+                        {
+                            CompletedAmount = task.CompletedAmount,
+                            CompletedDate = task.DateCompleted,
+                            ParrotPublicId = task.Parrot.PublicId,
+                            TaskPublicId = task.PublicId
+                        }), out IList<string> errors);
+                
+                if (sent)
+                {
+                    db.CommitTransaction();
+                    return Request.CreateResponse(HttpStatusCode.OK);
+                }
+                else
+                {
+                    db.RollbackTransaction();
+                    return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
+                }
+            }
         }
 
         // POST: api/shuffle
@@ -112,31 +258,47 @@ namespace TaskTrackerService.Controllers
                 var tasks = db.Tasks.Where(t => t.Status == Common.Enums.TaskStatus.Active).ToArray();
                 foreach(var task in tasks)
                 {
-                    int randomParrotId = GetRandomEngineerParrotId();
-                    if(randomParrotId != task.ParrotId)
+                    var parrot = GetRandomEngineerParrot();
+                    if(parrot.Id != task.ParrotId)
                     {
-                        task.ParrotId = randomParrotId;
+                        db.BeginTransaction();
+                        task.ParrotId = parrot.Id;
                         db.Update(task);
 
-                        // TODO: event for task
+                        bool sent = _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskAssignedV1, Guid.NewGuid().ToString(),
+                        new TaskAssignedEventV1(new TaskAssignedEventV1Data
+                        {                            
+                            TaskPublicId = task.PublicId,
+                            ParrotPublicId = parrot.PublicId,
+                            AssingedAmount = task.AssignedAmount,
+                        }), out IList<string> errors);
+
+                        if (sent)
+                        {
+                            db.CommitTransaction();
+                        }
+                        else
+                        {
+                            db.RollbackTransaction();
+                        }
                     }
                 }
-            }            
+            }
         }
 
-        private int GetRandomEngineerParrotId()
+        private Parrot GetRandomEngineerParrot()
         {
             using (var db = new TaskTrackerDB())
             {
-                var publicIds = db.Parrots
+                var parrots = db.Parrots
                     .Where(p => p.RoleId == (int)RoleIds.Engineer)
-                    .Select(p => p.Id)
                     .ToArray();
                 // todo: replace with skip-take
-                var idx = new Random().Next(publicIds.Length);
-                return publicIds[idx];
+                var idx = new Random().Next(parrots.Length);
+                return parrots[idx];
             }
-        }        
+        }
 
         // no task deletion
     }

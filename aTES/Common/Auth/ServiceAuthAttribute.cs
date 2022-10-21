@@ -1,5 +1,7 @@
-﻿using Common.Models;
+﻿using Common.Constants;
+using Common.Models;
 using System;
+using System.Configuration;
 using System.Net.Http;
 using System.Security.Principal;
 using System.Threading;
@@ -20,8 +22,7 @@ namespace Common.Auth
             var client = new HttpClient();            
             client.DefaultRequestHeaders.Authorization = context.Request.Headers.Authorization;
 
-            // todo: get url from service config
-            var response = await client.GetAsync(@"https://localhost:44386/api/auth/tryauth");
+            var response = await client.GetAsync(ConfigurationManager.AppSettings[ConfigurationKeys.AuthenticationUrl]);
             ParrotLoginModel model = null;
             if (response.IsSuccessStatusCode)
             {

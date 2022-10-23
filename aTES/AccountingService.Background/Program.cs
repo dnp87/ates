@@ -4,6 +4,8 @@ using Common.ConsumerWrapper;
 using Common.Events;
 using Common.Pricing;
 using Common.Utils;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using LinqToDB;
 using System;
 using System.Linq;
@@ -17,6 +19,10 @@ namespace AccountingService.Background
 
         static void Main(string[] args)
         {
+            Hangfire.GlobalConfiguration.Configuration.UseStorage(
+                new MemoryStorage());
+            RecurringJob.AddOrUpdate(() => ResetPositiveBalance(), Cron.Daily);
+
             System.Threading.Tasks.Task.WhenAll(
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
@@ -24,6 +30,11 @@ namespace AccountingService.Background
                 ConsumeTaskAssignedTopic(),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCompletedTopic)
                 ).Wait();
+        }
+
+        public static void ResetPositiveBalance()
+        {
+            //todo
         }
 
         static void ConsumeParrotCreatedTopic()

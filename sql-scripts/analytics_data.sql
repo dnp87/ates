@@ -6,8 +6,8 @@ INSERT INTO ROLES(ID,NAME) VALUES(4, 'Accountant');
 END;
 
 BEGIN
-INSERT INTO PARROTS(ID, PUBLIC_ID, NAME, EMAIL, ROLE_ID)
-VALUES(1, 'a6c8e978-1c12-41f2-a74f-e36a3177793a', 'parrot engineer', 'engineer@parrot.com', 1);
-INSERT INTO PARROTS(ID, PUBLIC_ID, NAME, EMAIL, ROLE_ID)
-VALUES(2, 'c6c7fcc1-b334-44bc-a494-0ba79bfd8c98', 'parrot admin', 'admin@parrot.com', 1);
+INSERT INTO PARROTS(PUBLIC_ID, NAME, EMAIL, ROLE_ID)
+VALUES('a6c8e978-1c12-41f2-a74f-e36a3177793a', 'parrot engineer', 'engineer@parrot.com', 1);
+INSERT INTO PARROTS(PUBLIC_ID, NAME, EMAIL, ROLE_ID)
+VALUES('c6c7fcc1-b334-44bc-a494-0ba79bfd8c98', 'parrot admin', 'admin@parrot.com', 1);
 END;

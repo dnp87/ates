@@ -3,6 +3,8 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Schema;
 using System.IO;
+using System.Reflection;
+using System.Web;
 
 namespace Common.SchemaRegistry
 {
@@ -12,7 +14,14 @@ namespace Common.SchemaRegistry
 
         public SchemaValidator()
         {
-            _basePath = System.Web.Hosting.HostingEnvironment.MapPath("/bin/JsonSchemas");
+            if (HttpContext.Current != null)
+            {
+                _basePath = System.Web.Hosting.HostingEnvironment.MapPath("/bin/JsonSchemas");
+            }
+            else
+            {
+                _basePath = Path.Combine(Path.GetDirectoryName(Assembly.GetCallingAssembly().Location), "JsonSchemas");
+            }
         }
 
         public bool ValidateBySchema(string json, string eventName, int version, out System.Collections.Generic.IList<string> errors)

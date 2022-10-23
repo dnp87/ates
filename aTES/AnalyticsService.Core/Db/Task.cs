@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace AnalyticsService.Core.Db
 {
-    [Table(Name = "TASKS_ANALYTICS")]
-    public class TaskAnalytics
+    [Table(Name = "TASKS")]
+    public class Task
     {
         [PrimaryKey]
         [Identity]
@@ -33,8 +33,5 @@ namespace AnalyticsService.Core.Db
 
         [Column(Name = "DATE_COMPLETED")]
         public DateTime DateCompleted { get; set; }
-
-        [Column(Name = "COMPLETED_AMOUNT")]
-        public int CompletedAmount { get; set; }
     }
 }

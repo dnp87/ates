@@ -3,9 +3,16 @@ using Common.Constants;
 using Common.ConsumerWrapper;
 using Common.Events;
 using Common.Pricing;
+using Common.ProducerWrapper;
+using Common.SchemaRegistry;
 using Common.Utils;
+using Confluent.Kafka;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using LinqToDB;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 
 namespace AccountingService.Background
@@ -15,15 +22,60 @@ namespace AccountingService.Background
         private static ITaskPricing _taskPricing = new TaskPricing();
         private const int MaxDbReadAttempts = 10;
 
+        private static IProducer<string, string> _producer;
+        private static IProducerWrapper _producerWrapper;
+
         static void Main(string[] args)
         {
+            var conf = new ProducerConfig()
+            {
+                BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
+            };
+            var producer = new ProducerBuilder<string, string>(conf);
+            _producer = producer.Build();
+            _producerWrapper = new ProducerWrapper(new SchemaValidator());
+
+
+            Hangfire.GlobalConfiguration.Configuration.UseStorage(
+                new MemoryStorage());
+            RecurringJob.AddOrUpdate(() => ResetPositiveBalance(), Cron.Daily);
+
             System.Threading.Tasks.Task.WhenAll(
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic),
-                ConsumeTaskAssignedTopic(),
+                System.Threading.Tasks.Task.Run(ConsumeTaskAssignedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCompletedTopic)
                 ).Wait();
+        }
+
+        public static void ResetPositiveBalance()
+        {
+            var date = DateTime.Today;
+            using(var db = new AccountingDB())
+            {
+                using (var tran = db.BeginTransaction())
+                {
+                    var q = from t in db.AccountLogs
+                            join a in db.Accounts on t.AccountId equals a.Id
+                            join p in db.Parrots on a.ParrotId equals p.Id
+                            group t by p.PublicId into pGroup
+                            select new
+                            {
+                                Sum = pGroup.Sum(o => o.Amount),
+                                ParrotPublicId = pGroup.Key
+                            };
+                    q = q.Where(o => o.Sum > 0);
+                    var accountsToBeReset = q.ToArray();
+
+                    foreach (var account in accountsToBeReset)
+                    {
+                        CreateTaskAccountLogRecord(db, account.ParrotPublicId, null, -account.Sum, date);
+                    }
+
+                    tran.Commit();
+                }
+            }
         }
 
         static void ConsumeParrotCreatedTopic()
@@ -104,24 +156,37 @@ namespace AccountingService.Background
                 });
         }
 
-        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int amount)
+        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int amount, DateTime date)
         {
             var parrot = db.Parrots.First(p => p.PublicId == parrotPublicId);
             var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
-            var task = db.Tasks.First(a => a.PublicId == taskPublicId);
+            var task = !String.IsNullOrEmpty(taskPublicId) 
+                ? db.Tasks.First(a => a.PublicId == taskPublicId)
+                : (Task) null;
 
             var accountLog = new AccountLog
             {
                 AccountId = account.Id,
-                TaskId = task.Id,
+                TaskId = task?.Id,
                 Amount = amount,
-                Created = DateTime.Now, //not for prod
+                Created = date,
                 PublicId = Guid.NewGuid().ToString(),
             };
             db.Insert(accountLog);
+
+            // todo: correct error handling
+            _producerWrapper.TrySendMessage(_producer, TopicNames.AccountLogCreatedV1, accountLog.PublicId,
+                new AccountLogCreatedV1(new AccountLogCreatedV1Data
+                {
+                    PublicId = accountLog.PublicId,
+                    ParrotPublicId = parrotPublicId,
+                    TaskPublicId = taskPublicId,
+                    Amount = amount,
+                    Created = date,                    
+                }), out IList<string> errors);
         }
 
-        static async System.Threading.Tasks.Task ConsumeTaskAssignedTopic()
+        static void ConsumeTaskAssignedTopic()
         {
             ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskAssignedV2,
                 async (TaskAssignedEventV2 typedEvent) =>
@@ -136,14 +201,14 @@ namespace AccountingService.Background
                             task = db.Tasks.FirstOrDefault(a => a.PublicId == typedEvent.Data.TaskPublicId);
                             if(task == null)
                             {
-                                await System.Threading.Tasks.Task.Delay(500);
+                                System.Threading.Tasks.Task.Delay(500).Wait();
                             }
                             tryCount++;
                         }
                         // if we can't get our task from db in MaxDbReadAttempts attemps
                         // we'd fail here.
                         // So I need to learn how to do it properly
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -task.AssignedAmount);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -task.AssignedAmount, typedEvent.EventDate);
                     }
                 });
         }
@@ -156,7 +221,7 @@ namespace AccountingService.Background
                     using (var db = new AccountingDB())
                     {
                         var task = db.Tasks.First(a => a.PublicId == typedEvent.Data.TaskPublicId);
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, task.CompletedAmount);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, task.CompletedAmount, typedEvent.EventDate);
                     }
                 });
         }

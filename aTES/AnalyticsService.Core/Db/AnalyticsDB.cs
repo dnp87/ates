@@ -14,7 +14,7 @@ namespace AnalyticsService.Core.Db
 
         public ITable<Role> Roles => this.GetTable<Role>();
         public ITable<Parrot> Parrots  => this.GetTable<Parrot>();
-        public ITable<ProfitByParrotsAnalytics> ProfitByParrotsAnalytics => this.GetTable<ProfitByParrotsAnalytics>();
-        public ITable<TaskAnalytics> TaskAnalytics => this.GetTable<TaskAnalytics>();
+        public ITable<AccountLog> AccountLogs => this.GetTable<AccountLog>();
+        public ITable<Task> Tasks => this.GetTable<Task>();
     }
 }

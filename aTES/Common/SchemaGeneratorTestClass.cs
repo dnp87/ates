@@ -16,7 +16,7 @@ namespace Common
     {
         public static void Main()
         {
-            /*var adminClient = new AdminClientBuilder(
+           /*var adminClient = new AdminClientBuilder(
                 new AdminClientConfig
                 {
                     BootstrapServers = "localhost:9092"
@@ -24,10 +24,7 @@ namespace Common
             try
             {
                 adminClient.CreateTopicsAsync(new TopicSpecification[] {
-                    new TopicSpecification { Name = TopicNames.TaskCreatedV1, ReplicationFactor = 1, NumPartitions = 1 },
-                    new TopicSpecification { Name = TopicNames.TaskCreatedV2, ReplicationFactor = 1, NumPartitions = 1 },
-                    new TopicSpecification { Name = TopicNames.TaskAssignedV1, ReplicationFactor = 1, NumPartitions = 1 },
-                    new TopicSpecification { Name = TopicNames.TaskCompletedV1, ReplicationFactor = 1, NumPartitions = 1 },
+                    new TopicSpecification { Name = TopicNames.AccountLogCreatedV1, ReplicationFactor = 1, NumPartitions = 1 }
                 }).Wait();                    
             }
             catch (CreateTopicsException e)
@@ -36,13 +33,9 @@ namespace Common
             }*/
 
             var gen = new JSchemaGenerator();
-            var sc1 = gen.Generate(typeof(TaskAssignedEventV2));
-            var sc2 = gen.Generate(typeof(TaskCompletedEventV2));
-            var sc3 = gen.Generate(typeof(TaskCreatedEventV3));
-
+            var sc1 = gen.Generate(typeof(AccountLogCreatedV1));
+            
             string str1 = sc1.ToString();
-            string str2 = sc2.ToString();
-            string str3 = sc3.ToString();
         }
     }
 }

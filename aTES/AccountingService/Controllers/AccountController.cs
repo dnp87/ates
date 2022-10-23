@@ -46,7 +46,7 @@ namespace AccountingService.Controllers
             {
                 var q = from al in db.AccountLogs
                         where al.TaskId != null && al.Created.Date == date.Value.Date
-                        select al.Amount;
+                        select -al.Amount; // parrot's profit -> company's loss
                 return q.Sum();
             }
         }

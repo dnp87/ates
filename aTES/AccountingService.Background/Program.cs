@@ -34,7 +34,31 @@ namespace AccountingService.Background
 
         public static void ResetPositiveBalance()
         {
-            //todo
+            var date = DateTime.Today;
+            using(var db = new AccountingDB())
+            {
+                using (var tran = db.BeginTransaction())
+                {
+                    var q = from t in db.AccountLogs
+                            join a in db.Accounts on t.AccountId equals a.Id
+                            join p in db.Parrots on a.ParrotId equals p.Id
+                            group t by p.PublicId into pGroup
+                            select new
+                            {
+                                Sum = pGroup.Sum(o => o.Amount),
+                                ParrotPublicId = pGroup.Key
+                            };
+                    q = q.Where(o => o.Sum > 0);
+                    var accountsToBeReset = q.ToArray();
+
+                    foreach (var account in accountsToBeReset)
+                    {
+                        CreateTaskAccountLogRecord(db, account.ParrotPublicId, null, -account.Sum, date);
+                    }
+
+                    tran.Commit();
+                }
+            }
         }
 
         static void ConsumeParrotCreatedTopic()
@@ -119,12 +143,14 @@ namespace AccountingService.Background
         {
             var parrot = db.Parrots.First(p => p.PublicId == parrotPublicId);
             var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
-            var task = db.Tasks.First(a => a.PublicId == taskPublicId);
+            var task = !String.IsNullOrEmpty(taskPublicId) 
+                ? db.Tasks.First(a => a.PublicId == taskPublicId)
+                : (Task) null;
 
             var accountLog = new AccountLog
             {
                 AccountId = account.Id,
-                TaskId = task.Id,
+                TaskId = task?.Id,
                 Amount = amount,
                 Created = date,
                 PublicId = Guid.NewGuid().ToString(),

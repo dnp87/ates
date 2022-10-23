@@ -104,7 +104,7 @@ namespace AccountingService.Background
                 });
         }
 
-        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int amount)
+        private static void CreateTaskAccountLogRecord(AccountingDB db, string parrotPublicId, string taskPublicId, int amount, DateTime date)
         {
             var parrot = db.Parrots.First(p => p.PublicId == parrotPublicId);
             var account = db.Accounts.First(a => a.ParrotId == parrot.Id);
@@ -115,7 +115,7 @@ namespace AccountingService.Background
                 AccountId = account.Id,
                 TaskId = task.Id,
                 Amount = amount,
-                Created = DateTime.Now, //not for prod
+                Created = date,
                 PublicId = Guid.NewGuid().ToString(),
             };
             db.Insert(accountLog);
@@ -143,7 +143,7 @@ namespace AccountingService.Background
                         // if we can't get our task from db in MaxDbReadAttempts attemps
                         // we'd fail here.
                         // So I need to learn how to do it properly
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -task.AssignedAmount);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -task.AssignedAmount, typedEvent.EventDate);
                     }
                 });
         }
@@ -156,7 +156,7 @@ namespace AccountingService.Background
                     using (var db = new AccountingDB())
                     {
                         var task = db.Tasks.First(a => a.PublicId == typedEvent.Data.TaskPublicId);
-                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, task.CompletedAmount);
+                        CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, task.CompletedAmount, typedEvent.EventDate);
                     }
                 });
         }

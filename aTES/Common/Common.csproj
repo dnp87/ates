@@ -141,13 +141,13 @@
     <AdditionalFiles Include="JsonSchemas\TaskCreated.2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
-    <AdditionalFiles Include="JsonSchemas\TaskAssingned.1.json">
+    <AdditionalFiles Include="JsonSchemas\TaskAssigned.1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <AdditionalFiles Include="JsonSchemas\TaskCompleted.1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
-    <AdditionalFiles Include="JsonSchemas\TaskAssingned.2.json">
+    <AdditionalFiles Include="JsonSchemas\TaskAssigned.2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <AdditionalFiles Include="JsonSchemas\TaskCompleted.2.json">

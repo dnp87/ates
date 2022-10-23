@@ -109,6 +109,7 @@ namespace TaskTrackerService.Controllers
                     };
                     db.Insert(task);
 
+                    IList<string> errors1 = new List<string>();
                     bool sent1 = _producerWrapper.TrySendMessage(
                     _parrotCreateProducer, TopicNames.TaskCreatedV3, task.PublicId,
                     new TaskCreatedEventV3(new TaskCreatedEventV3Data
@@ -118,7 +119,7 @@ namespace TaskTrackerService.Controllers
                         Name = task.Name,
                         JiraId = task.JiraId,
                         Description = task.Description,
-                    }), out IList<string> errors1);
+                    }), out errors1);
 
                     IList<string> errors2 = new List<string>();
                     bool sent2 = sent1 && _producerWrapper.TrySendMessage(

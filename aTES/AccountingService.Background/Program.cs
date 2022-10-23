@@ -13,6 +13,7 @@ namespace AccountingService.Background
     internal class Program
     {
         private static ITaskPricing _taskPricing = new TaskPricing();
+        private const int MaxDbReadAttempts = 10;
 
         static void Main(string[] args)
         {
@@ -20,7 +21,7 @@ namespace AccountingService.Background
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic),
-                System.Threading.Tasks.Task.Run(ConsumeTaskAssignedTopic),
+                ConsumeTaskAssignedTopic(),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCompletedTopic)
                 ).Wait();
         }
@@ -120,14 +121,28 @@ namespace AccountingService.Background
             db.Insert(accountLog);
         }
 
-        static void ConsumeTaskAssignedTopic()
+        static async System.Threading.Tasks.Task ConsumeTaskAssignedTopic()
         {
             ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskAssignedV2,
-                (TaskAssignedEventV2 typedEvent) =>
+                async (TaskAssignedEventV2 typedEvent) =>
                 {
                     using (var db = new AccountingDB())
                     {
-                        var task = db.Tasks.First(a => a.PublicId == typedEvent.Data.TaskPublicId);
+                        Task task = null;
+                        // trying to get a task up to MaxDbReadAttempts times
+                        int tryCount = 0;
+                        while (task == null && tryCount < MaxDbReadAttempts)
+                        {
+                            task = db.Tasks.FirstOrDefault(a => a.PublicId == typedEvent.Data.TaskPublicId);
+                            if(task == null)
+                            {
+                                await System.Threading.Tasks.Task.Delay(500);
+                            }
+                            tryCount++;
+                        }
+                        // if we can't get our task from db in MaxDbReadAttempts attemps
+                        // we'd fail here.
+                        // So I need to learn how to do it properly
                         CreateTaskAccountLogRecord(db, typedEvent.Data.ParrotPublicId, typedEvent.Data.TaskPublicId, -task.AssignedAmount);
                     }
                 });

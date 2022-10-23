@@ -116,7 +116,7 @@ namespace AnalyticsService.Background
                             Created = typedEvent.Data.Created
                         };
 
-                        int taskId = db.InsertWithInt32Identity(task);
+                        db.InsertWithInt32Identity(accountLog);
 
                         db.CommitTransaction();
                     }

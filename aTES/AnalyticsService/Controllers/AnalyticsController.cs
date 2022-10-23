@@ -13,7 +13,7 @@ namespace AnalyticsService.Controllers
     {
         // copy-paste from accounting
         [HttpGet]
-        [Route("api/Account/profit")]
+        [Route("api/Analytics/profit")]
         public int Profit(DateTime? date)
         {
             date = date ?? DateTime.Today;
@@ -28,11 +28,13 @@ namespace AnalyticsService.Controllers
             }
         }
 
+        [HttpGet]
         public MostExpensiveTasksModel MostExpensiveTasks()
         {
             return MostExpensiveTasks(DateTime.Today);
         }
 
+        [HttpGet]
         public MostExpensiveTasksModel MostExpensiveTasks(DateTime date)
         {
             DateTime monthDateBegin = new DateTime(date.Year, date.Month, 1);
@@ -72,12 +74,12 @@ namespace AnalyticsService.Controllers
                         where al.TaskId != null
                         && al.Created >= dateBeginInclusive.Date
                         && al.Created < dateEndExclusive.Date.AddDays(1)
-                        && al.Amount < 0
+                        && al.Amount > 0
                         select new
                         {
                             TaskId = al.TaskId,
                             Name = t.Name,
-                            Amount = -al.Amount // parrot's profit -> company's loss
+                            Amount = al.Amount
                         };
                 if (q.Count() > 0)
                 {
@@ -89,9 +91,13 @@ namespace AnalyticsService.Controllers
                         Amount = maxAmount,
                         Name = record.Name,
                     };
-                    if (dateBeginInclusive.Date == dateEndExclusive.Date.AddDays(-1))
+                    if (dateBeginInclusive.Date == dateEndExclusive.Date)
                     {
                         met.Period = dateBeginInclusive.Date.ToShortDateString();
+                    }
+                    else
+                    {
+                        met.Period = $"{dateBeginInclusive.Date.ToShortDateString()}-{dateEndExclusive.Date.ToShortDateString()}";
                     }
 
                     return met;

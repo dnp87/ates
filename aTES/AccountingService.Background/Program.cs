@@ -44,7 +44,7 @@ namespace AccountingService.Background
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic),
-                ConsumeTaskAssignedTopic(),
+                System.Threading.Tasks.Task.Run(ConsumeTaskAssignedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeTaskCompletedTopic)
                 ).Wait();
         }
@@ -186,7 +186,7 @@ namespace AccountingService.Background
                 }), out IList<string> errors);
         }
 
-        static async System.Threading.Tasks.Task ConsumeTaskAssignedTopic()
+        static void ConsumeTaskAssignedTopic()
         {
             ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskAssignedV2,
                 async (TaskAssignedEventV2 typedEvent) =>
@@ -201,7 +201,7 @@ namespace AccountingService.Background
                             task = db.Tasks.FirstOrDefault(a => a.PublicId == typedEvent.Data.TaskPublicId);
                             if(task == null)
                             {
-                                await System.Threading.Tasks.Task.Delay(500);
+                                System.Threading.Tasks.Task.Delay(500).Wait();
                             }
                             tryCount++;
                         }

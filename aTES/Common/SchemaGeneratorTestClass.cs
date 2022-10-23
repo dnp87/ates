@@ -16,7 +16,7 @@ namespace Common
     {
         public static void Main()
         {
-            var adminClient = new AdminClientBuilder(
+            /*var adminClient = new AdminClientBuilder(
                 new AdminClientConfig
                 {
                     BootstrapServers = "localhost:9092"
@@ -33,7 +33,16 @@ namespace Common
             catch (CreateTopicsException e)
             {
                 Console.WriteLine($"An error occured creating topic {e.Results[0].Topic}: {e.Results[0].Error.Reason}");
-            }
+            }*/
+
+            var gen = new JSchemaGenerator();
+            var sc1 = gen.Generate(typeof(TaskAssignedEventV2));
+            var sc2 = gen.Generate(typeof(TaskCompletedEventV2));
+            var sc3 = gen.Generate(typeof(TaskCreatedEventV3));
+
+            string str1 = sc1.ToString();
+            string str2 = sc2.ToString();
+            string str3 = sc3.ToString();
         }
     }
 }

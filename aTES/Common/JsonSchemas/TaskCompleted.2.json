@@ -1,0 +1,63 @@
+﻿{
+  "definitions": {
+    "TaskCompletedEventV2Data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "TaskPublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ParrotPublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "CompletedDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "TaskPublicId",
+        "ParrotPublicId",
+        "CompletedDate"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "EventName": {
+      "type": "string",
+      "enum": [ "TaskCompleted" ]
+    },
+    "EventVersion": {
+      "type": "integer",
+      "enum": [
+        2
+      ]
+    },
+    "Data": {
+      "$ref": "#/definitions/TaskCompletedEventV2Data"
+    },
+    "EventId": {
+      "type": "string"
+    },
+    "EventDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "EventName",
+    "EventVersion",
+    "Data",
+    "EventId",
+    "EventDate"
+  ]
+}

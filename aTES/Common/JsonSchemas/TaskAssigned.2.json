@@ -1,0 +1,63 @@
+﻿{
+  "definitions": {
+    "TaskAssignedEventV2Data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "TaskPublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ParrotPublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "AssignedDate": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "TaskPublicId",
+        "ParrotPublicId",
+        "AssignedDate"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "EventName": {
+      "type": "string",
+      "enum": [ "TaskAssigned" ]
+    },
+    "EventVersion": {
+      "type": "integer",
+      "enum": [
+        2
+      ]
+    },
+    "Data": {
+      "$ref": "#/definitions/TaskAssignedEventV2Data"
+    },
+    "EventId": {
+      "type": "string"
+    },
+    "EventDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "EventName",
+    "EventVersion",
+    "Data",
+    "EventId",
+    "EventDate"
+  ]
+}

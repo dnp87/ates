@@ -23,16 +23,12 @@ namespace TaskTrackerService.Controllers
 {
     [ServiceAuth]
     public class TasksController : ApiController
-    {
-        private readonly ITaskPricing _taskPricing;
+    {        
         private IProducer<string, string> _parrotCreateProducer;
         private IProducerWrapper _producerWrapper;
 
         public TasksController() : base()
         {
-            //todo: dependency injection
-            _taskPricing = new TaskPricing();
-
             var conf = new ProducerConfig()
             {
                 BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
@@ -94,7 +90,7 @@ namespace TaskTrackerService.Controllers
         }
 
         // POST: api/Tasks
-        public HttpResponseMessage Post([FromBody]TaskPostModelV2 postModel)
+        public HttpResponseMessage Post([FromBody]TaskPostModelV3 postModel)
         {
             using (var db = new TaskTrackerDB())
             {
@@ -109,32 +105,38 @@ namespace TaskTrackerService.Controllers
                         Name = postModel.Name,
                         JiraId = postModel.JiraId,
                         Description = postModel.Description,
-                        Status = Common.Enums.TaskStatus.Active,
-                        AssignedAmount = _taskPricing.GetAssignAmount(),
-                        CompletedAmount = _taskPricing.GetCompletedAmount(),
+                        Status = Common.Enums.TaskStatus.Active
                     };
                     db.Insert(task);
 
-                    bool sent = _producerWrapper.TrySendMessage(
-                    _parrotCreateProducer, TopicNames.TaskCreatedV2, task.PublicId,
-                    new TaskCreatedEventV2(new TaskCreatedEventV2Data
+                    IList<string> errors1 = new List<string>();
+                    bool sent1 = _producerWrapper.TrySendMessage(
+                    _parrotCreateProducer, TopicNames.TaskCreatedV3, task.PublicId,
+                    new TaskCreatedEventV3(new TaskCreatedEventV3Data
                     {
                         PublicId = task.PublicId,
                         ParrotPublicId = parrot.PublicId,
                         Name = task.Name,
                         JiraId = task.JiraId,
                         Description = task.Description,
-                        AssignedAmount = task.AssignedAmount,
-                        CompletedAmount = task.CompletedAmount,
-                    }), out IList<string> errors);
+                    }), out errors1);
 
-                    if (sent)
+                    IList<string> errors2 = new List<string>();
+                    bool sent2 = sent1 && _producerWrapper.TrySendMessage(
+                        _parrotCreateProducer, TopicNames.TaskAssignedV2, Guid.NewGuid().ToString(),
+                        new TaskAssignedEventV2(new TaskAssignedEventV2Data
+                        {
+                            TaskPublicId = task.PublicId,
+                            ParrotPublicId = parrot.PublicId,
+                        }), out errors2);
+
+                    if (sent2)
                     {
                         tran.Commit();
                     }
                     else
                     {
-                        ModelState.AddModelError("Topic", String.Join("; ", errors));
+                        ModelState.AddModelError("Topic", String.Join("; ", errors1.Concat(errors2)));
                     }
                 }
             }
@@ -148,68 +150,6 @@ namespace TaskTrackerService.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
             }
         }
-
-        // POST: api/Tasks/v1
-        [HttpPost]
-        [Route("api/Tasks/v1")]
-        public HttpResponseMessage Postv1([FromBody] TaskPostModelV1 postModel)
-        {            
-            if(!TaskNameParser.TryParseJiraIdAndName(postModel.Name, out (string jiraId, string name) pair))
-            {
-                ModelState.AddModelError(nameof(postModel.Name), "Can't extract jira id and name from input string");
-            }
-
-            if (ModelState.IsValid)
-            {
-                using (var db = new TaskTrackerDB())
-                {
-                    using(var tran = db.BeginTransaction())
-                    {
-                        var parrot = GetRandomEngineerParrot();
-
-                        var task = new Task
-                        {
-                            PublicId = Guid.NewGuid().ToString(),
-                            ParrotId = parrot.Id,
-                            Name = pair.name,
-                            JiraId = pair.jiraId,
-                            Description = postModel.Description,
-                            Status = Common.Enums.TaskStatus.Active,
-                            AssignedAmount = _taskPricing.GetAssignAmount(),
-                            CompletedAmount = _taskPricing.GetCompletedAmount(),
-                        };
-                        db.Insert(task);
-
-                        bool sent = _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.TaskCreatedV1, task.PublicId,
-                        new TaskCreatedEventV1(new TaskCreatedEventV1Data
-                        {
-                            PublicId = task.PublicId,
-                            ParrotPublicId = parrot.PublicId,
-                            Name = task.Name,                        
-                            Description = task.Description,
-                            AssignedAmount = task.AssignedAmount,
-                            CompletedAmount = task.CompletedAmount,
-                        }), out IList<string> errors);
-
-                        if (sent)
-                        {
-                            tran.Commit();
-                        }
-                        else
-                        {
-                            ModelState.AddModelError("Topic", String.Join("; ", errors));
-                        }
-                    }
-                }
-
-                return Request.CreateResponse(HttpStatusCode.OK);
-            }
-            else
-            {
-                return Request.CreateErrorResponse(HttpStatusCode.BadRequest, ModelState);
-            }
-        }        
 
         // PUT: api/Tasks/Complete/{public_id}
         [Route("api/Tasks/Complete/{id}")]
@@ -225,10 +165,9 @@ namespace TaskTrackerService.Controllers
                 db.Update(task);
 
                 bool sent = _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.TaskCompletedV1, Guid.NewGuid().ToString(),
-                        new TaskCompletedEventV1(new TaskCompletedEventV1Data
+                        _parrotCreateProducer, TopicNames.TaskCompletedV2, Guid.NewGuid().ToString(),
+                        new TaskCompletedEventV2(new TaskCompletedEventV2Data
                         {
-                            CompletedAmount = task.CompletedAmount,
                             CompletedDate = task.DateCompleted,
                             ParrotPublicId = task.Parrot.PublicId,
                             TaskPublicId = task.PublicId
@@ -266,12 +205,11 @@ namespace TaskTrackerService.Controllers
                         db.Update(task);
 
                         bool sent = _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.TaskAssignedV1, Guid.NewGuid().ToString(),
-                        new TaskAssignedEventV1(new TaskAssignedEventV1Data
+                        _parrotCreateProducer, TopicNames.TaskAssignedV2, Guid.NewGuid().ToString(),
+                        new TaskAssignedEventV2(new TaskAssignedEventV2Data
                         {                            
                             TaskPublicId = task.PublicId,
-                            ParrotPublicId = parrot.PublicId,
-                            AssingedAmount = task.AssignedAmount,
+                            ParrotPublicId = parrot.PublicId,                        
                         }), out IList<string> errors);
 
                         if (sent)

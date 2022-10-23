@@ -109,8 +109,11 @@
     <Compile Include="Events\EventBase.cs" />
     <Compile Include="Events\ParrotUpdatedEventV1.cs" />
     <Compile Include="Events\ParrotCreatedEventV2.cs" />
+    <Compile Include="Events\TaskAssignedEventV2.cs" />
     <Compile Include="Events\TaskAssignedEventV1.cs" />
+    <Compile Include="Events\TaskCompletedEventV2.cs" />
     <Compile Include="Events\TaskCompletedEventV1.cs" />
+    <Compile Include="Events\TaskCreatedEventV3.cs" />
     <Compile Include="Events\TaskCreatedEventV2.cs" />
     <Compile Include="Events\TaskCreatedEventV1.cs" />
     <Compile Include="Models\ParrotLoginModel.cs" />
@@ -138,10 +141,19 @@
     <AdditionalFiles Include="JsonSchemas\TaskCreated.2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
-    <AdditionalFiles Include="JsonSchemas\TaskAssingned.1.json">
+    <AdditionalFiles Include="JsonSchemas\TaskAssigned.1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <AdditionalFiles Include="JsonSchemas\TaskCompleted.1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskAssigned.2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskCompleted.2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </AdditionalFiles>
+    <AdditionalFiles Include="JsonSchemas\TaskCreated.3.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </AdditionalFiles>
     <None Include="packages.config" />

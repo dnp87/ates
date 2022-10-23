@@ -22,7 +22,8 @@ namespace AnalyticsService.Background
             System.Threading.Tasks.Task.WhenAll(
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
                 System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
-                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic)
+                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic),
+                System.Threading.Tasks.Task.Run(ConsumeAccountLogCreatedV1Topic)
                 ).Wait();
         }
 
@@ -83,6 +84,36 @@ namespace AnalyticsService.Background
                             Name = typedEvent.Data.Name,
                             JiraId = typedEvent.Data.JiraId,
                             ParrotId = parrot.Id,
+                        };
+
+                        int taskId = db.InsertWithInt32Identity(task);
+
+                        db.CommitTransaction();
+                    }
+                });
+        }
+
+        static void ConsumeAccountLogCreatedV1Topic()
+        {
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.AccountLogCreatedV1,
+                (AccountLogCreatedV1 typedEvent) =>
+                {
+                    using (var db = new AnalyticsDB())
+                    {
+                        db.BeginTransaction();
+
+                        var parrot = db.Parrots.First(p => p.PublicId == typedEvent.Data.ParrotPublicId);
+                        var task = !String.IsNullOrEmpty(typedEvent.Data.TaskPublicId)
+                            ? db.Tasks.First(p => p.PublicId == typedEvent.Data.TaskPublicId)
+                            : null;
+
+                        var accountLog = new Core.Db.AccountLog
+                        {
+                            PublicId = typedEvent.Data.PublicId,
+                            ParrotId = parrot.Id,
+                            TaskId = task?.Id,
+                            Amount = typedEvent.Data.Amount,
+                            Created = typedEvent.Data.Created
                         };
 
                         int taskId = db.InsertWithInt32Identity(task);

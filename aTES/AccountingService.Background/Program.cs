@@ -3,11 +3,16 @@ using Common.Constants;
 using Common.ConsumerWrapper;
 using Common.Events;
 using Common.Pricing;
+using Common.ProducerWrapper;
+using Common.SchemaRegistry;
 using Common.Utils;
+using Confluent.Kafka;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using LinqToDB;
 using System;
+using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 
 namespace AccountingService.Background
@@ -17,8 +22,20 @@ namespace AccountingService.Background
         private static ITaskPricing _taskPricing = new TaskPricing();
         private const int MaxDbReadAttempts = 10;
 
+        private static IProducer<string, string> _producer;
+        private static IProducerWrapper _producerWrapper;
+
         static void Main(string[] args)
         {
+            var conf = new ProducerConfig()
+            {
+                BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
+            };
+            var producer = new ProducerBuilder<string, string>(conf);
+            _producer = producer.Build();
+            _producerWrapper = new ProducerWrapper(new SchemaValidator());
+
+
             Hangfire.GlobalConfiguration.Configuration.UseStorage(
                 new MemoryStorage());
             RecurringJob.AddOrUpdate(() => ResetPositiveBalance(), Cron.Daily);
@@ -156,6 +173,17 @@ namespace AccountingService.Background
                 PublicId = Guid.NewGuid().ToString(),
             };
             db.Insert(accountLog);
+
+            // todo: correct error handling
+            _producerWrapper.TrySendMessage(_producer, TopicNames.AccountLogCreatedV1, accountLog.PublicId,
+                new AccountLogCreatedV1(new AccountLogCreatedV1Data
+                {
+                    PublicId = accountLog.PublicId,
+                    ParrotPublicId = parrotPublicId,
+                    TaskPublicId = taskPublicId,
+                    Amount = amount,
+                    Created = date,                    
+                }), out IList<string> errors);
         }
 
         static async System.Threading.Tasks.Task ConsumeTaskAssignedTopic()

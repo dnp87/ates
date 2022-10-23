@@ -12,12 +12,15 @@
             "null"
           ]
         },
-        "AccountId": {
-          "type": "integer"
-        },
-        "TaskId": {
+        "ParrotPublicId": {
           "type": [
-            "integer",
+            "string",
+            "null"
+          ]
+        },
+        "TaskPublicId": {
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -31,8 +34,8 @@
       },
       "required": [
         "PublicId",
-        "AccountId",
-        "TaskId",
+        "ParrotPublicId",
+        "TaskPublicId",
         "Amount",
         "Created"
       ]

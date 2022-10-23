@@ -30,8 +30,8 @@ namespace Common.Events
     public class AccountLogCreatedV1Data
     {
         public string PublicId { get; set; }
-        public int AccountId { get; set; }
-        public int? TaskId { get; set; }
+        public string ParrotPublicId { get; set; }
+        public string TaskPublicId { get; set; }
         public int Amount { get; set; }
         public DateTime Created { get; set; }
     }

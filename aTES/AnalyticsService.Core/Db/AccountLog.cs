@@ -22,7 +22,7 @@ namespace AnalyticsService.Core.Db
         public int ParrotId { get; set; }
 
         [Column(Name = "TASK_ID")]
-        public int TaskId { get; set; }
+        public int? TaskId { get; set; }
 
         [Column(Name = "AMOUNT")]
         public int Amount { get; set; }

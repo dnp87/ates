@@ -74,9 +74,9 @@
   <ItemGroup>
     <Compile Include="Db\AnalyticsDB.cs" />
     <Compile Include="Db\Parrot.cs" />
-    <Compile Include="Db\ProfitByParrotsAnalytics.cs" />
+    <Compile Include="Db\AccountLog.cs" />
     <Compile Include="Db\Role.cs" />
-    <Compile Include="Db\TaskAnalytics.cs" />
+    <Compile Include="Db\Task.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

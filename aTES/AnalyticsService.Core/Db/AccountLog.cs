@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace AnalyticsService.Core.Db
 {
-    [Table(Name = "PROFIT_BY_PARROT_ANALYTICS")]
-    public class ProfitByParrotsAnalytics
+    [Table(Name = "ACCOUNT_LOGS")]
+    public class AccountLog
     {
         [PrimaryKey]
         [Identity]
@@ -17,9 +17,17 @@ namespace AnalyticsService.Core.Db
 
         [Column(Name = "PUBLIC_ID")]
         public string PublicId { get; set; }
+        
+        [Column(Name = "PARROT_ID")]
+        public int ParrotId { get; set; }
 
-        //PARROT_ID INTEGER NOT NULL REFERENCES PARROTS(ID),
-        //PROFIT_AMOUNT INTEGER DEFAULT(0) NOT NULL,  -- in a real system this would be a decimal
-        //PROFIT_DATE DATE NOT NULL
+        [Column(Name = "TASK_ID")]
+        public int TaskId { get; set; }
+
+        [Column(Name = "AMOUNT")]
+        public int Amount { get; set; }
+
+        [Column(Name = "CREATED")]
+        public DateTime Created { get; set; }
     }
 }

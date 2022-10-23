@@ -1,0 +1,71 @@
+﻿{
+  "definitions": {
+    "AccountLogCreatedV1Data": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "properties": {
+        "PublicId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "AccountId": {
+          "type": "integer"
+        },
+        "TaskId": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "Amount": {
+          "type": "integer"
+        },
+        "Created": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "PublicId",
+        "AccountId",
+        "TaskId",
+        "Amount",
+        "Created"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "EventName": {
+      "type": "string",
+      "enum": [ "AccountLogCreated" ]
+    },
+    "EventVersion": {
+      "type": "integer",
+      "enum": [
+        1
+      ]
+    },
+    "Data": {
+      "$ref": "#/definitions/AccountLogCreatedV1Data"
+    },
+    "EventId": {
+      "type": "string"
+    },
+    "EventDate": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "EventName",
+    "EventVersion",
+    "Data",
+    "EventId",
+    "EventDate"
+  ]
+}

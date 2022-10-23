@@ -21,5 +21,7 @@ namespace Common.Constants
         public const string TaskAssignedV2 = "task.assigned.2";
         public const string TaskCompletedV1 = "task.completed.1";
         public const string TaskCompletedV2 = "task.completed.2";
+
+        public const string AccountLogCreatedV1 = "accountlog.created.1";
     }
 }

@@ -24,7 +24,7 @@ namespace TaskTrackerService.Controllers
     [ServiceAuth]
     public class TasksController : ApiController
     {        
-        private IProducer<string, string> _parrotCreateProducer;
+        private IProducer<string, string> _producer;
         private IProducerWrapper _producerWrapper;
 
         public TasksController() : base()
@@ -34,7 +34,7 @@ namespace TaskTrackerService.Controllers
                 BootstrapServers = ConfigurationManager.AppSettings[ConfigurationKeys.KafkaBootstrapServers],
             };
             var producer = new ProducerBuilder<string, string>(conf);
-            _parrotCreateProducer = producer.Build();
+            _producer = producer.Build();
 
             _producerWrapper = new ProducerWrapper(new SchemaValidator());
 
@@ -111,7 +111,7 @@ namespace TaskTrackerService.Controllers
 
                     IList<string> errors1 = new List<string>();
                     bool sent1 = _producerWrapper.TrySendMessage(
-                    _parrotCreateProducer, TopicNames.TaskCreatedV3, task.PublicId,
+                    _producer, TopicNames.TaskCreatedV3, task.PublicId,
                     new TaskCreatedEventV3(new TaskCreatedEventV3Data
                     {
                         PublicId = task.PublicId,
@@ -123,7 +123,7 @@ namespace TaskTrackerService.Controllers
 
                     IList<string> errors2 = new List<string>();
                     bool sent2 = sent1 && _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.TaskAssignedV2, Guid.NewGuid().ToString(),
+                        _producer, TopicNames.TaskAssignedV2, Guid.NewGuid().ToString(),
                         new TaskAssignedEventV2(new TaskAssignedEventV2Data
                         {
                             TaskPublicId = task.PublicId,
@@ -165,7 +165,7 @@ namespace TaskTrackerService.Controllers
                 db.Update(task);
 
                 bool sent = _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.TaskCompletedV2, Guid.NewGuid().ToString(),
+                        _producer, TopicNames.TaskCompletedV2, Guid.NewGuid().ToString(),
                         new TaskCompletedEventV2(new TaskCompletedEventV2Data
                         {
                             CompletedDate = task.DateCompleted,
@@ -205,7 +205,7 @@ namespace TaskTrackerService.Controllers
                         db.Update(task);
 
                         bool sent = _producerWrapper.TrySendMessage(
-                        _parrotCreateProducer, TopicNames.TaskAssignedV2, Guid.NewGuid().ToString(),
+                        _producer, TopicNames.TaskAssignedV2, Guid.NewGuid().ToString(),
                         new TaskAssignedEventV2(new TaskAssignedEventV2Data
                         {                            
                             TaskPublicId = task.PublicId,

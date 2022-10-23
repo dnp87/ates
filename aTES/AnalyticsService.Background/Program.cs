@@ -19,9 +19,10 @@ namespace AnalyticsService.Background
     {
         static void Main(string[] args)
         {
-            Task.WhenAll(
+            System.Threading.Tasks.Task.WhenAll(
                 System.Threading.Tasks.Task.Run(ConsumeParrotCreatedTopic),
-                System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic)
+                System.Threading.Tasks.Task.Run(ConsumeParrotUpdatedTopic),
+                System.Threading.Tasks.Task.Run(ConsumeTaskCreatedV3Topic)
                 ).Wait();
         }
 
@@ -59,7 +60,34 @@ namespace AnalyticsService.Background
                             parrot.RoleId = (int)typedEvent.Data.RoleId;
 
                             db.Update(parrot);
-                        }                        
+                        }
+                    }
+                });
+        }
+
+        static void ConsumeTaskCreatedV3Topic()
+        {
+            ConsumerProcessingWrapper.ContiniouslyConsume(TopicNames.TaskCreatedV3,
+                (TaskCreatedEventV3 typedEvent) =>
+                {
+                    using (var db = new AnalyticsDB())
+                    {
+                        db.BeginTransaction();
+
+                        var parrot = db.Parrots.First(p => p.PublicId == typedEvent.Data.ParrotPublicId);
+
+                        var task = new Core.Db.Task
+                        {
+                            PublicId = typedEvent.Data.PublicId,
+                            Description = typedEvent.Data.Description,
+                            Name = typedEvent.Data.Name,
+                            JiraId = typedEvent.Data.JiraId,
+                            ParrotId = parrot.Id,
+                        };
+
+                        int taskId = db.InsertWithInt32Identity(task);
+
+                        db.CommitTransaction();
                     }
                 });
         }
